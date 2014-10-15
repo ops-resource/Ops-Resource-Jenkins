@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0"
+         DefaultTargets="Build_Packer_Run"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <!-- Defines whether the current script file has been loaded / imported or not -->
+        <ExistsSharedLocateNBuildKit>true</ExistsSharedLocateNBuildKit>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <!-- Build flags -->
+        <ShouldDisplayDebugLog Condition=" '$(ShouldDisplayDebugLog)' == '' ">false</ShouldDisplayDebugLog>
+        <ShouldExecute Condition=" '$(ShouldExecute)' == '' ">true</ShouldExecute>
+        
+        <!-- Directories -->
+        <DirWorkspace Condition=" '$(DirWorkspace)' == '' ">$([System.IO.Path]::GetDirectoryName('$(BuildPropertyFile)'))</DirWorkspace>
+        <DirBuild Condition=" '$(DirBuild)' == '' ">$(DirWorkspace)\build</DirBuild>
+        <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
+        <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
+        <DirBuildTempSetup Condition=" '$(DirBuildTempSetup)' == '' ">$(DirBuildTemp)\setup</DirBuildTempSetup>
+        <DirBuildTempSetupInstallers Condition=" '$(DirBuildTempSetupInstallers)' == '' ">$(DirBuildTempSetup)\installers</DirBuildTempSetupInstallers>
+       
+        <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
+        <DirScriptsPowershell Condition=" '$(DirScriptsPowershell)' == '' ">$(DirScripts)\ps</DirScriptsPowershell>
+        <DirTemplates Condition=" '$(DirTemplates)' == '' ">$(DirWorkspace)\templates</DirTemplates>
+        
+        <!-- Azure configuration -->
+        <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
+        <AzureStorageAccount Condition=" '$(AzureStorageAccount)' == '' ">UNDEFINED</AzureStorageAccount>
+        
+        <!-- External tools -->
+        <ToolsExternalPowershellPath Condition=" '$(ToolsExternalPowershellPath)' == '' ">C:\Windows\System32\WindowsPowerShell\v1.0</ToolsExternalPowershellPath>
+        
+        <!-- Files -->
+        <FileSemanticVersion Condition=" '$(FileSemanticVersion)' == '' ">$(DirBuildTemp)\semantic_version.json</FileSemanticVersion>
+        <FileJenkinsMasterConfigTemplate Condition=" '$(FileJenkinsMasterConfigTemplate)' == '' ">$(DirTemplates)\jenkinsmaster.xml.in</FileJenkinsMasterConfigTemplate>
+        <FileJenkinsMasterConfig Condition=" '$(FileJenkinsMasterConfig)' == '' ">$(DirBuildTemp)\jenkinsmaster.xml</FileJenkinsMasterConfig>
+        <FileJenkinsMasterScript Condition=" '$(FileJenkinsMasterScript)' == '' ">$(DirScriptsPowershell)\New-AzureJenkinsMaster.ps1</FileJenkinsMasterScript>
+        
+        <!-- Version number -->
+        <VersionSemantic>0</VersionSemantic>
+    </PropertyGroup>
+    
+    <Import Project="$(DirMsBuildExtensions)\GetSemanticVersionFromFile.msbuild" 
+            Condition="Exists('$(DirMsBuildExtensions)\GetSemanticVersionFromFile.msbuild') AND '$(ExistsExtensionsGetSemanticVersionFromFile)' != 'true' " />
+            
+    <Import Project="$(DirScriptsMsBuild)\CreateAzureVirtualMachine.msbuild" 
+            Condition="Exists('$(DirScriptsMsBuild)\CreateAzureVirtualMachine.msbuild') AND '$(ExistsCreateAzureVirtualMachine)' != 'true' " />
+
+    <Target Name="Build_Packer_Run" DependsOnTargets="_Build_Packer_DisplayInfo">
+        <CallTarget Targets="_Build_Master_GetVersion" />
+        <CallTarget Targets="_Build_Master_GatherInstallers" />
+        <CallTarget Targets="_Build_Master_Build" />
+    </Target>
+    
+    <Target Name="_Build_Packer_DisplayInfo">
+        <Message Text="Project directory structure:" />
+        <Message Text="The workspace is located at:                                      $(DirWorkspace)" />
+        <Message Text="The directory containing the build output is located at:          $(DirBuild)" />
+        <Message Text="The directory containing the build logs is located at:            $(DirBuildLogs)" />
+        <Message Text="The directory containing the temporary build files is located at: $(DirBuildTemp)" />
+        <Message Text="The directory containing the installer files is located at:       $(DirBuildTempInstallers)" />
+        <Message Text="The directory containing the packer configuration is located at:  $(DirConfig)" />
+        <Message Text="The directory containing the installation scripts is located at:  $(DirScripts)" />
+        <Message Text=" " />
+        
+        <Message Text="Jenkins master configuration template file is located at: $(FileJenkinsMasterConfigTemplate)" />
+        <Message Text="Jenkins master configuration file is located at:          $(FileJenkinsMasterConfig)" />
+        <Message Text="Jenkins master build script is located at:                $(FileJenkinsMasterScript)" />
+        <Message Text=" " />
+        
+        <Message Text="Powershell command line executable is located at:         $(ToolsExternalPowershellPath)" />
+        <Message Text=" " />
+    </Target>
+    
+    <Target Name="_Build_Master_GetVersion" Condition="Exists('$(FileSemanticVersion)')">
+        <GetSemanticVersionFromFile VersionFile="$(FileSemanticVersion)" 
+                                    Condition="Exists('$(FileSemanticVersion)') AND '$(ShouldExecute)' == 'true' ">
+            <Output TaskParameter="VersionSemantic" PropertyName="VersionSemantic" />
+        </GetSemanticVersionFromFile>
+        
+        <Message Text="Version: $(VersionSemantic)" />
+    </Target>
+    
+    <Target Name="_Build_Master_GatherInstallers">
+        <MakeDir Directories="$(DirBuild)" 
+                 Condition="!Exists('$(DirBuild)')" />
+        <MakeDir Directories="$(DirBuildTemp)" 
+                 Condition="!Exists('$(DirBuildTemp)')" />
+        <MakeDir Directories="$(DirBuildTempSetup)" 
+                 Condition="!Exists('$(DirBuildTempSetup)')" />
+        <MakeDir Directories="$(DirBuildTempSetupInstallers)" 
+                 Condition="!Exists('$(DirBuildTempSetupInstallers)')" />
+        
+        <!-- Download all required installers and ZIP archives -->
+        <ItemGroup>
+            <SetupScripts Include="$(DirScripts)\**\*.ps1" />
+        </ItemGroup>
+        <Copy SourceFiles="@(SetupScripts)"
+              DestinationFolder="$(DirBuildTempSetup)" />
+    </Target>
+
+    <Target Name="_Build_Master_Build"
+            DependsOnTargets="nBuildKit_Shared_TemplateTokens_Initialize">
+        <!-- Generate config file -->
+        <TemplateFile Template="$(FileJenkinsMasterConfigTemplate)" 
+                      OutputFileName="$(FileJenkinsMasterConfig)" 
+                      Tokens="@(TemplateTokens)" 
+                      Condition=" '$(ShouldExecute)' == 'true' "/>
+    
+        <!-- Make sure the whole thing stops if something goes wrong -->
+        <CreateProperty Value="$ErrorActionPreference = &#39;Stop&#39; ">
+            <Output TaskParameter="Value" PropertyName="CommandErrorActionPreference" />
+        </CreateProperty>
+        
+        <!-- Import Azure -->
+        <CreateProperty Value="Import-Module Azure">
+            <Output TaskParameter="Value" PropertyName="CommandImportAzure" />
+        </CreateProperty>
+        
+        <!-- Invoke the powershell script -->
+        <CreateProperty Value="&amp; $(FileJenkinsMasterScript) -configFile &#39;$(FileJenkinsMasterConfig)&#39; -Verbose">
+            <Output TaskParameter="Value" PropertyName="CommandInvokePester" />
+        </CreateProperty>
+        
+        <CreateProperty Value="try { $(CommandErrorActionPreference) &#059; $(CommandImportAzure) &#059; $(CommandInvokeScript) } catch { exit 1 }">
+            <Output TaskParameter="Value" PropertyName="CommandAzureJenkinsMaster" />
+        </CreateProperty>
+        <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandAzureJenkinsMaster) &quot;" />
+    </Target>
+</Project>
