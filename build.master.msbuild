@@ -22,6 +22,7 @@
        
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
         <DirScriptsPowershell Condition=" '$(DirScriptsPowershell)' == '' ">$(DirScripts)\ps</DirScriptsPowershell>
+        <DirScriptsCmd Condition=" '$(DirScriptsCmd)' == '' ">$(DirScripts)\cmd</DirScriptsCmd>
         <DirTemplates Condition=" '$(DirTemplates)' == '' ">$(DirWorkspace)\templates</DirTemplates>
         
         <!-- Azure configuration -->
@@ -94,9 +95,10 @@
         
         <!-- Download all required installers and ZIP archives -->
         <ItemGroup>
-            <SetupScripts Include="$(DirScripts)\**\*.ps1" />
+            <SetupFiles Include="$(DirScriptsPowershell)\Remote\**\*.ps1" />
+            <SetupFiles Include="$(DirScriptsCmd)\**\*.bat" />
         </ItemGroup>
-        <Copy SourceFiles="@(SetupScripts)"
+        <Copy SourceFiles="@(SetupFiles)"
               DestinationFolder="$(DirBuildTempSetup)" />
     </Target>
 
