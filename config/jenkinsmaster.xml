@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <!--
+        The following elements, when placed between ${ and }, will be replaced with their respective values:
+        VersionMajor            - The major version number
+        VersionMinor            - The minor version number
+        VersionPatch            - The patch version number
+        VersionBuild            - The build number of the version
+        VersionSemantic         - The semantic version, e.g. 1.2.3
+        VersionSemanticFull     - The full semantic version, e.g. 1.2.3+001
+        
+        VcsRevision             - The current VCS revision 'number'
+        VcsBranch               - The name of the current VCS branch
+        
+        ReleaseNotesShort       - The contents of the short release notes
+        ReleaseNotesFull        - The contents of the full release notes
+        
+        Now                     - The current date and time
+        Date                    - The current date
+        DayOfMonth              - The current day of the month
+        Month                   - The current month
+        Year                    - The current year
+        
+        ProductName             - The name of the product
+        ProductNameInFilePath   - The product name written in a way that it can be used in the file path
+        ProductDescription      - The (short) description of the product
+        ProductNamespace        - The namespace in which all the code for the product is placed
+        ProductStartingYear     - The year the current product was created / released.
+        
+        CompanyName             - The name of the company
+        CompanyNameInFilePath   - The name of the company written in a way that it can be used in the file path
+        CompanyUrl              - The URL of the company website
+        
+        DirBin                  - The full path to the directory that contains the binaries
+        DirDeploy               - The full path to the directory that contains the artifacts
+        DirLogs                 - The full path to the directory that contain the build logs
+        DirSrc                  - The full path to the directory that contains the source files
+        DirTemp                 - The full path to the directory that contains the temporary build files
+        
+        CertificateName         - The subject name of the certificate that should be used for the SSL connection
+        
+        ServiceName             - The name of the resource group under which the virtual machine should be created
+        
+        DomainName              - The name of the domain to which the machine should be connected
+        DomainNameForAdmin      - The name of the domain which contains the domain administrator identity
+        DomainAdminUserName     - The user name of the domain administrator
+        DomainAdminPassword     - The password for the domain administrator account
+        
+        StorageAccount          - The name of the storage account that will be used to store the virtual machine disks
+        
+        DirInstallers           - The directory that contains all the scripts and installers that should be transferred to the virtual machine
+        FileInstallerEntryPoint - The script file that initiates the installation of all the required tools on the virtual machine
+    -->
+    <authentication>
+        <certificate name="${CertificateName}" />
+    </authentication>
+    <cloudservice name="${ServiceName}">
+        <domain name="${DomainName}">
+            <admin domainname="${DomainNameForAdmin}" 
+                   name="${DomainAdminUserName}" 
+                   password="${DomainAdminPassword}" />
+        </domain>
+        <image name="jenkins-master-win2012R2_${VersionSemantic}" 
+               label="Jenkins master on Windows Server 2012 R2">
+            <baseimage>a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-201409.01-en.us-127GB.vhd</baseimage>
+            <storageaccount>${StorageAccount}</storageaccount>
+        </image>
+    </cloudservice>
+    <desiredstate>
+        <installerpath>${DirInstallers}</installerpath>
+        <entrypoint name="${FileInstallerEntryPoint}" />
+    </desiredstate>
+</configuration>

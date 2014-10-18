@@ -20,13 +20,18 @@
         <DirBuildTempSetup Condition=" '$(DirBuildTempSetup)' == '' ">$(DirBuildTemp)\setup</DirBuildTempSetup>
         <DirBuildTempSetupInstallers Condition=" '$(DirBuildTempSetupInstallers)' == '' ">$(DirBuildTempSetup)\installers</DirBuildTempSetupInstallers>
        
+        <DirConfig Condition=" '$(DirConfig)' == '' ">$(DirWorkspace)\config</DirConfig>
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
         <DirScriptsPowershell Condition=" '$(DirScriptsPowershell)' == '' ">$(DirScripts)\ps</DirScriptsPowershell>
         <DirScriptsCmd Condition=" '$(DirScriptsCmd)' == '' ">$(DirScripts)\cmd</DirScriptsCmd>
         <DirTemplates Condition=" '$(DirTemplates)' == '' ">$(DirWorkspace)\templates</DirTemplates>
         
         <!-- Azure configuration -->
-        <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
+        <SslCertificateSubject Condition=" '$(SslCertificateSubject)' == '' ">UNDEFINED</SslCertificateSubject>
+        <AzureServiceName Condition=" '$(AzureServiceName)' == '' ">UNDEFINED</AzureServiceName>
+        <AzureDomainName Condition=" '$(AzureDomainName)' == '' ">UNDEFINED</AzureDomainName>
+        <AzureDomainAdminUserName Condition=" '$(AzureDomainAdminUserName)' == '' ">UNDEFINED</AzureDomainAdminUserName>
+        <AzureDomainAdminPassword Condition=" '$(AzureDomainAdminPassword)' == '' ">UNDEFINED</AzureDomainAdminPassword>
         <AzureStorageAccount Condition=" '$(AzureStorageAccount)' == '' ">UNDEFINED</AzureStorageAccount>
         
         <!-- External tools -->
@@ -34,19 +39,23 @@
         
         <!-- Files -->
         <FileSemanticVersion Condition=" '$(FileSemanticVersion)' == '' ">$(DirBuildTemp)\semantic_version.json</FileSemanticVersion>
-        <FileJenkinsMasterConfigTemplate Condition=" '$(FileJenkinsMasterConfigTemplate)' == '' ">$(DirTemplates)\jenkinsmaster.xml.in</FileJenkinsMasterConfigTemplate>
+        <FileJenkinsMasterConfigTemplate Condition=" '$(FileJenkinsMasterConfigTemplate)' == '' ">$(DirConfig)\jenkinsmaster.xml</FileJenkinsMasterConfigTemplate>
         <FileJenkinsMasterConfig Condition=" '$(FileJenkinsMasterConfig)' == '' ">$(DirBuildTemp)\jenkinsmaster.xml</FileJenkinsMasterConfig>
         <FileJenkinsMasterScript Condition=" '$(FileJenkinsMasterScript)' == '' ">$(DirScriptsPowershell)\New-AzureJenkinsMaster.ps1</FileJenkinsMasterScript>
+        
+        <FileRemoteInstallerMain Condition=" '$(FileRemoteInstallerMain)' == '' ">$(DirBuildTempSetupInstallers)\Set-JenkinsMaster.ps1</FileRemoteInstallerMain>
         
         <!-- Version number -->
         <VersionSemantic>0</VersionSemantic>
     </PropertyGroup>
     
+    <Import Project="$(DirMsBuildShared)\shared.templatetokens.msbuild" 
+            Condition="Exists('$(DirMsBuildShared)\shared.templatetokens.msbuild') AND '$(ExistsSharedTemplateTokens)' != 'true' " />
+    
     <Import Project="$(DirMsBuildExtensions)\GetSemanticVersionFromFile.msbuild" 
             Condition="Exists('$(DirMsBuildExtensions)\GetSemanticVersionFromFile.msbuild') AND '$(ExistsExtensionsGetSemanticVersionFromFile)' != 'true' " />
-            
-    <Import Project="$(DirScriptsMsBuild)\CreateAzureVirtualMachine.msbuild" 
-            Condition="Exists('$(DirScriptsMsBuild)\CreateAzureVirtualMachine.msbuild') AND '$(ExistsCreateAzureVirtualMachine)' != 'true' " />
+    <Import Project="$(DirMsBuildExtensions)\TemplateFile.msbuild" 
+            Condition="Exists('$(DirMsBuildExtensions)\TemplateFile.msbuild') AND '$(ExistsExtensionsTemplateFile)' != 'true' " />
 
     <Target Name="Build_Packer_Run" DependsOnTargets="_Build_Packer_DisplayInfo">
         <CallTarget Targets="_Build_Master_GetVersion" />
@@ -104,6 +113,36 @@
 
     <Target Name="_Build_Master_Build"
             DependsOnTargets="nBuildKit_Shared_TemplateTokens_Initialize">
+        <ItemGroup>
+            <TemplateTokens Include="CertificateName">
+                <ReplacementValue>$(SslCertificateSubject)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="ServiceName">
+                <ReplacementValue>$(AzureServiceName)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="DomainName">
+                <ReplacementValue>$(AzureDomainName)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="DomainNameForAdmin">
+                <ReplacementValue>$(AzureDomainName)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="DomainAdminUserName">
+                <ReplacementValue>$(AzureDomainAdminUserName)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="DomainAdminPassword">
+                <ReplacementValue>$(AzureDomainAdminPassword)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="StorageAccount">
+                <ReplacementValue>$(AzureStorageAccount)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="DirInstallers">
+                <ReplacementValue>$(DirBuildTempSetup)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="FileInstallerEntryPoint">
+                <ReplacementValue>$(FileRemoteInstallerMain)</ReplacementValue>
+            </TemplateTokens>
+        </ItemGroup>
+        
         <!-- Generate config file -->
         <TemplateFile Template="$(FileJenkinsMasterConfigTemplate)" 
                       OutputFileName="$(FileJenkinsMasterConfig)" 
@@ -122,12 +161,13 @@
         
         <!-- Invoke the powershell script -->
         <CreateProperty Value="&amp; $(FileJenkinsMasterScript) -configFile &#39;$(FileJenkinsMasterConfig)&#39; -Verbose">
-            <Output TaskParameter="Value" PropertyName="CommandInvokePester" />
+            <Output TaskParameter="Value" PropertyName="CommandInvokeScript" />
         </CreateProperty>
         
-        <CreateProperty Value="try { $(CommandErrorActionPreference) &#059; $(CommandImportAzure) &#059; $(CommandInvokeScript) } catch { exit 1 }">
+        <CreateProperty Value="$(CommandErrorActionPreference) &#059; $(CommandImportAzure) &#059; $(CommandInvokeScript)">
             <Output TaskParameter="Value" PropertyName="CommandAzureJenkinsMaster" />
         </CreateProperty>
-        <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandAzureJenkinsMaster) &quot;" />
+        <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandAzureJenkinsMaster) &quot;"
+              LogStandardErrorAsError="true" />
     </Target>
 </Project>
