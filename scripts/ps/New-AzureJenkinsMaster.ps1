@@ -99,12 +99,12 @@ $vmConfig = New-AzureVMConfig -Name $vmName -InstanceSize Basic_A0 -ImageName $b
 
 Write-Verbose "Stuff"
 $vmConfig | Add-AzureProvisioningConfig `
-        -Windows `
+        -WindowsDomain `
         -TimeZone $timeZone `
         -DisableAutomaticUpdates `
         -WinRMCertificate $certificate `
         -NoRDPEndpoint `
-        -WindowsDomain `
+        -AdminUserName 'admin' `
         -JoinDomain $domainName `
         -Domain $domainName `
         -DomainUserName $domainAdmin `
@@ -114,17 +114,17 @@ $vmConfig | Add-AzureProvisioningConfig `
 # attach to network
 
 # Create the machine and start it
-New-AzureVM -ServiceName $cloudSvcName -VMs $vmConfig -WaitForBoot -Verbose
+New-AzureVM -ServiceName $cloudSvcName -VMs $vmConfig -WaitForBoot -Verbose -ErrorAction Stop
 
 # Get the remote endpoint
-$uri = Get-AzureWinRMUri -ServiceName $cloudSvcName -Name $vmName
+$uri = Get-AzureWinRMUri -ServiceName $cloudSvcName -Name $vmName -ErrorAction Stop
 
 # create the credential
 $securePassword = ConvertTo-SecureString $domainPassword -AsPlainText -Force
 $credential = New-Object pscredential($domainAdmin, $securePassword)
 
 # Connect through WinRM
-$session = New-PSSession -ConnectionUri $uri -Credential $credential
+$session = New-PSSession -ConnectionUri $uri -Credential $credential -ErrorAction Stop
 
 # Push binaries to the new VM
 $remoteDirectory = 'c:\temp'
@@ -145,7 +145,8 @@ Invoke-Command `
         )
         
         & $installationScript
-    } 
+    } `
+     -ErrorAction Stop
 
 <#
 # Sysprep
@@ -161,7 +162,8 @@ Invoke-Command `
         )
 
         & $sysPrepScript
-    }
+    } `
+     -ErrorAction Stop
 
 # Wait for machine to turn off. Wait for a maximum of 5 minutes before we fail it.
 $isRunning = $true
@@ -183,5 +185,5 @@ while ($isRunning)
 }
 
 # templatize
-Save-AzureVMImage -ServiceName $cloudSvcName -Name $vmName -ImageName $imageName -OSState Generalized -ImageLabel $imageLabel
+Save-AzureVMImage -ServiceName $cloudSvcName -Name $vmName -ImageName $imageName -OSState Generalized -ImageLabel $imageLabel  -ErrorAction Stop
 #>
