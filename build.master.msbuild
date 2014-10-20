@@ -29,9 +29,6 @@
         <!-- Azure configuration -->
         <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
         <AzureServiceName Condition=" '$(AzureServiceName)' == '' ">UNDEFINED</AzureServiceName>
-        <AzureDomainName Condition=" '$(AzureDomainName)' == '' ">UNDEFINED</AzureDomainName>
-        <AzureDomainAdminUserName Condition=" '$(AzureDomainAdminUserName)' == '' ">UNDEFINED</AzureDomainAdminUserName>
-        <AzureDomainAdminPassword Condition=" '$(AzureDomainAdminPassword)' == '' ">UNDEFINED</AzureDomainAdminPassword>
         <AzureStorageAccount Condition=" '$(AzureStorageAccount)' == '' ">UNDEFINED</AzureStorageAccount>
         
         <!-- External tools -->
@@ -119,18 +116,6 @@
             </TemplateTokens>
             <TemplateTokens Include="ServiceName">
                 <ReplacementValue>$(AzureServiceName)</ReplacementValue>
-            </TemplateTokens>
-            <TemplateTokens Include="DomainName">
-                <ReplacementValue>$(AzureDomainName)</ReplacementValue>
-            </TemplateTokens>
-            <TemplateTokens Include="DomainNameForAdmin">
-                <ReplacementValue>$(AzureDomainName)</ReplacementValue>
-            </TemplateTokens>
-            <TemplateTokens Include="DomainAdminUserName">
-                <ReplacementValue>$(AzureDomainAdminUserName)</ReplacementValue>
-            </TemplateTokens>
-            <TemplateTokens Include="DomainAdminPassword">
-                <ReplacementValue>$(AzureDomainAdminPassword)</ReplacementValue>
             </TemplateTokens>
             <TemplateTokens Include="StorageAccount">
                 <ReplacementValue>$(AzureStorageAccount)</ReplacementValue>

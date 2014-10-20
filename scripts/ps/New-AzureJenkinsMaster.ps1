@@ -50,17 +50,6 @@ Write-Verbose "subscriptionName: $subscriptionName"
 $baseImage = $config.service.image.baseimage
 Write-Verbose "baseImage: $baseImage"
 
-$domainName = $config.service.domain.name
-Write-Verbose "domainName: $domainName"
-
-$adminDomainName = $config.service.domain.admin.domainname
-Write-Verbose "adminDomainName: $adminDomainName"
-
-$domainAdmin = $config.service.domain.admin.name
-Write-Verbose "domainAdmin: $domainAdmin"
-
-$domainPassword = $config.service.domain.admin.password
-
 $storageAccount = $config.service.image.storageaccount
 Write-Verbose "storageAccount: $storageAccount"
 
@@ -99,17 +88,18 @@ $mediaLocation = ("https://" + $storageAccount + ".blob.core.windows.net/vhds/" 
 # be big (hence using the InstanceSize Basic_A0).
 Write-Output "Creating temporary virtual machine for $resourceGroupName in $mediaLocation based on $baseImage"
 $vmConfig = New-AzureVMConfig -Name $vmName -InstanceSize Basic_A0 -ImageName $baseImage -MediaLocation $mediaLocation @commonParameterSwitches
+
+$certificate = Get-ChildItem -Path Cert:\CurrentUser\Root | Where-Object { $_.Subject -match "Azure SSL Certificate" } | Select-Object -First 1
+$adminName = "TheBigCheese"
+$adminPassword = [System.Guid]::NewGuid().ToString()
 $vmConfig | Add-AzureProvisioningConfig `
-        -WindowsDomain `
+        -Windows `
         -TimeZone $timeZone `
         -DisableAutomaticUpdates `
+        -WinRMCertificate $certificate `
         -NoRDPEndpoint `
-        -AdminUserName 'theadmin' `
-        -Password 'TheAdmin1' `
-        -JoinDomain $domainName `
-        -Domain $domainName `
-        -DomainUserName $domainAdmin `
-        -DomainPassword $domainPassword `
+        -AdminUserName $adminName `
+        -Password $adminPassword `
         @commonParameterSwitches
 try
 {
@@ -118,14 +108,14 @@ try
 
     # Get the certificate that was generated on the machine and install it in the local cert store so that we
     # can connect over HTTPS
-    InstallWinRMCertificateForVM -CloudServiceName $resourceGroupName -Name $vmName @commonParameterSwitches
+    #InstallWinRMCertificateForVM -CloudServiceName $resourceGroupName -Name $vmName @commonParameterSwitches
 
     # Get the remote endpoint
     $uri = Get-AzureWinRMUri -ServiceName $resourceGroupName -Name $vmName @commonParameterSwitches
 
     # create the credential
-    $securePassword = ConvertTo-SecureString $domainPassword -AsPlainText -Force @commonParameterSwitches
-    $credential = New-Object pscredential($domainAdmin, $securePassword)
+    $securePassword = ConvertTo-SecureString $adminPassword -AsPlainText -Force @commonParameterSwitches
+    $credential = New-Object pscredential($adminName, $securePassword)
 
     # Connect through WinRM
     $session = New-PSSession -ConnectionUri $uri -Credential $credential @commonParameterSwitches
@@ -152,7 +142,6 @@ try
         } `
          @commonParameterSwitches
 
-    <#
     # Sysprep
     # Note that apparently this can't be done just remotely because sysprep starts but doesn't actually
     # run (i.e. it exits without doing any work). So this needs to be done from the local machine 
@@ -171,7 +160,7 @@ try
 
     # Wait for machine to turn off. Wait for a maximum of 5 minutes before we fail it.
     $isRunning = $true
-    $timeout = [System.TimeSpan]::FromMinutes(5)
+    $timeout = [System.TimeSpan]::FromMinutes(10)
     $killTime = [System.DateTimeOffset]::Now + $timeout
     while ($isRunning)
     {
@@ -190,13 +179,13 @@ try
 
     # templatize
     Save-AzureVMImage -ServiceName $resourceGroupName -Name $vmName -ImageName $imageName -OSState Generalized -ImageLabel $imageLabel  @commonParameterSwitches
-    #>
 }
 finally
 {
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     if ($vm -ne $null)
     {
-        Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
+        Write-Verbose "Pretending to remove $vmName"
+        #Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
     }
 }

@@ -38,16 +38,7 @@
         DirTemp                 - The full path to the directory that contains the temporary build files
         
         SubscriptionName        - The name of the subscription that should be used
-        
         ServiceName             - The name of the resource group under which the virtual machine should be created
-        
-        VirtualNetworkName      - The name of the virtual network to which the machine should be connected
-        
-        DomainName              - The name of the domain to which the machine should be connected
-        DomainNameForAdmin      - The name of the domain which contains the domain administrator identity
-        DomainAdminUserName     - The user name of the domain administrator
-        DomainAdminPassword     - The password for the domain administrator account
-        
         StorageAccount          - The name of the storage account that will be used to store the virtual machine disks
         
         DirInstallers           - The directory that contains all the scripts and installers that should be transferred to the virtual machine
@@ -57,11 +48,6 @@
         <subscription name="${SubscriptionName}" />
     </authentication>
     <service name="${ServiceName}">
-        <domain name="${DomainName}">
-            <admin domainname="${DomainNameForAdmin}" 
-                   name="${DomainAdminUserName}" 
-                   password="${DomainAdminPassword}" />
-        </domain>
         <image name="jenkins-master-win2012R2_${VersionSemantic}" 
                label="Jenkins master on Windows Server 2012 R2">
             <baseimage>a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-201409.01-en.us-127GB.vhd</baseimage>
