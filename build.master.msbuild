@@ -27,7 +27,7 @@
         <DirTemplates Condition=" '$(DirTemplates)' == '' ">$(DirWorkspace)\templates</DirTemplates>
         
         <!-- Azure configuration -->
-        <SslCertificateSubject Condition=" '$(SslCertificateSubject)' == '' ">UNDEFINED</SslCertificateSubject>
+        <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
         <AzureServiceName Condition=" '$(AzureServiceName)' == '' ">UNDEFINED</AzureServiceName>
         <AzureDomainName Condition=" '$(AzureDomainName)' == '' ">UNDEFINED</AzureDomainName>
         <AzureDomainAdminUserName Condition=" '$(AzureDomainAdminUserName)' == '' ">UNDEFINED</AzureDomainAdminUserName>
@@ -114,8 +114,8 @@
     <Target Name="_Build_Master_Build"
             DependsOnTargets="nBuildKit_Shared_TemplateTokens_Initialize">
         <ItemGroup>
-            <TemplateTokens Include="CertificateName">
-                <ReplacementValue>$(SslCertificateSubject)</ReplacementValue>
+            <TemplateTokens Include="SubscriptionName">
+                <ReplacementValue>$(AzureSubscriptionName)</ReplacementValue>
             </TemplateTokens>
             <TemplateTokens Include="ServiceName">
                 <ReplacementValue>$(AzureServiceName)</ReplacementValue>
