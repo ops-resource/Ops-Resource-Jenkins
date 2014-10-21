@@ -28,6 +28,7 @@
         
         <!-- Azure configuration -->
         <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
+        <AzureSslCertificateName Condition=" '$(AzureSslCertificateName)' == '' ">UNDEFINED</AzureSslCertificateName>
         <AzureServiceName Condition=" '$(AzureServiceName)' == '' ">UNDEFINED</AzureServiceName>
         <AzureStorageAccount Condition=" '$(AzureStorageAccount)' == '' ">UNDEFINED</AzureStorageAccount>
         
@@ -113,6 +114,9 @@
         <ItemGroup>
             <TemplateTokens Include="SubscriptionName">
                 <ReplacementValue>$(AzureSubscriptionName)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="SslCertificateName">
+                <ReplacementValue>$(AzureSslCertificateName)</ReplacementValue>
             </TemplateTokens>
             <TemplateTokens Include="ServiceName">
                 <ReplacementValue>$(AzureServiceName)</ReplacementValue>

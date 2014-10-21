@@ -47,6 +47,9 @@ $config = ([xml](Get-Content $configFile)).configuration
 $subscriptionName = $config.authentication.subscription.name
 Write-Verbose "subscriptionName: $subscriptionName"
 
+$sslCertificateName = $config.authentication.certificates.ssl
+Write-Verbose "sslCertificateName: $sslCertificateName"
+
 $baseImage = $config.service.image.baseimage
 Write-Verbose "baseImage: $baseImage"
 
@@ -89,7 +92,7 @@ $mediaLocation = ("https://" + $storageAccount + ".blob.core.windows.net/vhds/" 
 Write-Output "Creating temporary virtual machine for $resourceGroupName in $mediaLocation based on $baseImage"
 $vmConfig = New-AzureVMConfig -Name $vmName -InstanceSize Basic_A0 -ImageName $baseImage -MediaLocation $mediaLocation @commonParameterSwitches
 
-$certificate = Get-ChildItem -Path Cert:\CurrentUser\Root | Where-Object { $_.Subject -match "Azure SSL Certificate" } | Select-Object -First 1
+$certificate = Get-ChildItem -Path Cert:\CurrentUser\Root | Where-Object { $_.Subject -match $sslCertificateName } | Select-Object -First 1
 $adminName = "TheBigCheese"
 $adminPassword = [System.Guid]::NewGuid().ToString()
 $vmConfig | Add-AzureProvisioningConfig `

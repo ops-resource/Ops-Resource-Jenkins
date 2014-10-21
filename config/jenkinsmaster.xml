@@ -38,6 +38,7 @@
         DirTemp                 - The full path to the directory that contains the temporary build files
         
         SubscriptionName        - The name of the subscription that should be used
+        SslCertificateName  - The full path to the SSL certificate that should be used for the WinRM session.
         ServiceName             - The name of the resource group under which the virtual machine should be created
         StorageAccount          - The name of the storage account that will be used to store the virtual machine disks
         
@@ -46,6 +47,9 @@
     -->
     <authentication>
         <subscription name="${SubscriptionName}" />
+        <certificates>
+            <ssl>${SslCertificateName}</ssl>
+        </certificates>
     </authentication>
     <service name="${ServiceName}">
         <image name="jenkins-master-win2012R2_${VersionSemantic}" 
