@@ -42,6 +42,9 @@
         ServiceName             - The name of the resource group under which the virtual machine should be created
         StorageAccount          - The name of the storage account that will be used to store the virtual machine disks
         
+        AdministratorName       - The name of the administrator account for the virtual machine
+        AdministratorPassword   - The password for the administrator account for the virtual machine
+        
         DirInstallers           - The directory that contains all the scripts and installers that should be transferred to the virtual machine
         FileInstallerEntryPoint - The script file that initiates the installation of all the required tools on the virtual machine
     -->
@@ -50,6 +53,7 @@
         <certificates>
             <ssl>${SslCertificateName}</ssl>
         </certificates>
+        <admin name="${AdministratorName}" password="${AdministratorPassword}" />
     </authentication>
     <service name="${ServiceName}">
         <image name="jenkins-master-win2012R2_${VersionSemantic}" 

@@ -14,7 +14,7 @@ $commonParameterSwitches =
     }
 
 # Load the helper functions
-$azureHelpers = Join-Path $PSScriptRoot AzureJenkinsHelpers.ps1
+$azureHelpers = Join-Path $PSScriptRoot Azure.ps1
 . $azureHelpers
 
 if (-not (Test-Path $configFile))
@@ -50,6 +50,11 @@ Write-Verbose "subscriptionName: $subscriptionName"
 $sslCertificateName = $config.authentication.certificates.ssl
 Write-Verbose "sslCertificateName: $sslCertificateName"
 
+$adminName = $config.authentication.admin.name
+Write-Verbose "adminName: $adminName"
+
+$adminPassword = $config.authentication.admin.password
+
 $baseImage = $config.service.image.baseimage
 Write-Verbose "baseImage: $baseImage"
 
@@ -65,10 +70,10 @@ Write-Verbose "installationDirectory: $installationDirectory"
 $installationScript = $config.desiredstate.entrypoint.name
 Write-Verbose "installationScript: $installationScript"
 
-$imageName = $config.cloudservice.image.name
+$imageName = $config.service.image.name
 Write-Verbose "imageName: $imageName"
 
-$imageLabel = $config.cloudservice.image.label
+$imageLabel = $config.service.image.label
 Write-Verbose "imageLabel: $imageLabel"
 
 # Set the storage account for the selected subscription
@@ -80,57 +85,29 @@ $now = [System.DateTimeOffset]::Now
 $vmName = ("ajm-" + $now.DayOfYear.ToString("000") + "-" + $now.Hour.ToString("00") + $now.Minute.ToString("00") + $now.Second.ToString("00"))
 Write-Verbose "vmName: $vmName"
 
-# For the timezone use the timezone of the current machine
-$timeZone = [System.TimeZoneInfo]::Local.StandardName
-Write-Verbose ("timeZone: " + $timeZone)
-
-# The media location is the name of the storage account appropriately mangled into a URL
-$mediaLocation = ("https://" + $storageAccount + ".blob.core.windows.net/vhds/" + $vmname + ".vhd")
-
-# Create a machine. This machine isn't actually going to be used for anything other than installing the software so it doesn't need to
-# be big (hence using the InstanceSize Basic_A0).
-Write-Output "Creating temporary virtual machine for $resourceGroupName in $mediaLocation based on $baseImage"
-$vmConfig = New-AzureVMConfig -Name $vmName -InstanceSize Basic_A0 -ImageName $baseImage -MediaLocation $mediaLocation @commonParameterSwitches
-
-$certificate = Get-ChildItem -Path Cert:\CurrentUser\Root | Where-Object { $_.Subject -match $sslCertificateName } | Select-Object -First 1
-$adminName = "TheBigCheese"
-$adminPassword = [System.Guid]::NewGuid().ToString()
-$vmConfig | Add-AzureProvisioningConfig `
-        -Windows `
-        -TimeZone $timeZone `
-        -DisableAutomaticUpdates `
-        -WinRMCertificate $certificate `
-        -NoRDPEndpoint `
-        -AdminUserName $adminName `
-        -Password $adminPassword `
-        @commonParameterSwitches
 try
 {
-    # Create the machine and start it
-    New-AzureVM -ServiceName $resourceGroupName -VMs $vmConfig -WaitForBoot @commonParameterSwitches
+    New-AzureVmFromTemplate `
+        -resourceGroupName $resourceGroupName `
+        -storageAccount $storageAccount `
+        -baseImage $baseImage `
+        -vmName $vmName `
+        -sslCertificateName $sslCertificateName `
+        -adminName $adminName `
+        -adminPassword $adminPassword
 
-    # Get the certificate that was generated on the machine and install it in the local cert store so that we
-    # can connect over HTTPS
-    #InstallWinRMCertificateForVM -CloudServiceName $resourceGroupName -Name $vmName @commonParameterSwitches
-
-    # Get the remote endpoint
-    $uri = Get-AzureWinRMUri -ServiceName $resourceGroupName -Name $vmName @commonParameterSwitches
-
-    # create the credential
-    $securePassword = ConvertTo-SecureString $adminPassword -AsPlainText -Force @commonParameterSwitches
-    $credential = New-Object pscredential($adminName, $securePassword)
-
-    # Connect through WinRM
-    $session = New-PSSession -ConnectionUri $uri -Credential $credential @commonParameterSwitches
-
-    # Push binaries to the new VM
-    $remoteDirectory = 'c:\temp'
-    $filesToCopy = Get-ChildItem -Path $installationDirectory @commonParameterSwitches
-    foreach($fileToCopy in $filesToCopy)
-    {
-        $remotePath = Join-Path $remoteDirectory (Split-Path -Leaf $fileToCopy)
-        Copy-ItemToRemoteMachine -localPath $fileToCopy -remotePath $remotePath -Session $session @commonParameterSwitches
-    }
+    $session = Get-PSSessionForAzureVM `
+        -resourceGroupName $resourceGroupName `
+        -vmName $vmName `
+        -adminName $adminName `
+        -adminPassword $adminPassword
+    
+    # Create the installer directory on the virtual machine
+    $filesToCopy = Get-ChildItem -Path $installationDirectory -Recurse -Force @commonParameterSwitches | 
+        Where-Object { -not $_.PsIsContainer } |
+        Select-Object -ExpandProperty FullName
+    $remoteDirectory = 'c:\installers'
+    Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy $filesToCopy
 
     # Execute the remote installation scripts
     Invoke-Command `
@@ -145,50 +122,13 @@ try
         } `
          @commonParameterSwitches
 
-    # Sysprep
-    # Note that apparently this can't be done just remotely because sysprep starts but doesn't actually
-    # run (i.e. it exits without doing any work). So this needs to be done from the local machine 
-    # that is about to be sysprepped.
-    Invoke-Command `
-        -Session $session `
-        -ArgumentList @( (Join-Path $remoteDirectory 'sysprep.bat') ) `
-        -ScriptBlock {
-            param(
-                [string] $sysPrepScript
-            )
-
-            & $sysPrepScript
-        } `
-         @commonParameterSwitches
-
-    # Wait for machine to turn off. Wait for a maximum of 5 minutes before we fail it.
-    $isRunning = $true
-    $timeout = [System.TimeSpan]::FromMinutes(10)
-    $killTime = [System.DateTimeOffset]::Now + $timeout
-    while ($isRunning)
-    {
-        $vm = Get-AzureVM -Name $vmName
-        if ($vm.Status -eq "StoppedDeallocated")
-        {
-            $isRunning = $false
-        }
-
-        if ([System.DateTimeOffset]::Now -gt $killTime)
-        {
-            $isRunning = false;
-            throw "Virtual machine Sysprep failed to complete within $timeout"
-        }
-    }
-
-    # templatize
-    Save-AzureVMImage -ServiceName $resourceGroupName -Name $vmName -ImageName $imageName -OSState Generalized -ImageLabel $imageLabel  @commonParameterSwitches
+    New-AzureSyspreppedVMImage -session $session -resourceGroupName $resourceGroupName -vmName $vmName -imageName $imageName -imageLabel $imageLabel
 }
 finally
 {
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     if ($vm -ne $null)
     {
-        Write-Verbose "Pretending to remove $vmName"
-        #Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
+        Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
     }
 }

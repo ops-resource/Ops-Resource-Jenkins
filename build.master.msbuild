@@ -32,6 +32,10 @@
         <AzureServiceName Condition=" '$(AzureServiceName)' == '' ">UNDEFINED</AzureServiceName>
         <AzureStorageAccount Condition=" '$(AzureStorageAccount)' == '' ">UNDEFINED</AzureStorageAccount>
         
+        <!-- Virtual machine template configuration -->
+        <TemplateAdminstratorName Condition=" '$(TemplateAdminstratorName)' == '' ">TheBigCheese</TemplateAdminstratorName>
+        <TemplateAdminstratorPassword Condition=" '$(TemplateAdminstratorPassword)' == '' ">{E1BF62A1-24F4-49F4-A56F-1844868D26DC}</TemplateAdminstratorPassword>
+        
         <!-- External tools -->
         <ToolsExternalPowershellPath Condition=" '$(ToolsExternalPowershellPath)' == '' ">C:\Windows\System32\WindowsPowerShell\v1.0</ToolsExternalPowershellPath>
         
@@ -123,6 +127,12 @@
             </TemplateTokens>
             <TemplateTokens Include="StorageAccount">
                 <ReplacementValue>$(AzureStorageAccount)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="AdministratorName">
+                <ReplacementValue>$(TemplateAdminstratorName)</ReplacementValue>
+            </TemplateTokens>
+            <TemplateTokens Include="AdministratorPassword">
+                <ReplacementValue>$(TemplateAdminstratorPassword)</ReplacementValue>
             </TemplateTokens>
             <TemplateTokens Include="DirInstallers">
                 <ReplacementValue>$(DirBuildTempSetup)</ReplacementValue>
