@@ -11,7 +11,7 @@ function Copy-ItemToRemoteMachine
     $content = [Io.File]::ReadAllBytes( $localPath )
     $contentsizeMB = $content.Count / 1MB + 1MB
 
-    Write-Output "Copying $fileName from $localPath to $remotePath on $Connection.Name ..."
+    Write-Output "Copying $fileName from $localPath to $remotePath on $session.Name ..."
 
     # Open local file
     try
@@ -202,7 +202,10 @@ function Add-AzureFilesToVM
                 [string] $dir
             )
         
-            New-Item -Path $dir -ItemType Directory
+            if (-not (Test-Path $dir))
+            {
+                New-Item -Path $dir -ItemType Directory
+            }
         } `
          @commonParameterSwitches
 
@@ -238,9 +241,9 @@ function New-AzureSyspreppedVMImage
             ErrorAction = "Stop"
         }
 
-    $cmd = 'c:\Windows\system32\sysprep\sysprep.exe /oobe /generalize /shutdown'
+    $cmd = 'Write-Verbose "Executing $sysPrepScript on VM"; & c:\Windows\system32\sysprep\sysprep.exe /oobe /generalize /shutdown'
     $tempDir = Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())
-    $sysprepCmd = Join-Path $tempDir 'sysprep.cmd'
+    $sysprepCmd = Join-Path $tempDir 'sysprep.ps1'
     
     $remoteDirectory = "c:\sysprep"
     try
@@ -262,6 +265,7 @@ function New-AzureSyspreppedVMImage
     # Note that apparently this can't be done just remotely because sysprep starts but doesn't actually
     # run (i.e. it exits without doing any work). So this needs to be done from the local machine 
     # that is about to be sysprepped.
+    Write-Verbose "Starting sysprep ..."
     Invoke-Command `
         -Session $session `
         -ArgumentList @( (Join-Path $remoteDirectory (Split-Path -Leaf $sysprepCmd)) ) `
@@ -270,28 +274,55 @@ function New-AzureSyspreppedVMImage
                 [string] $sysPrepScript
             )
 
-            & $sysPrepScript
+            & "$sysPrepScript"
         } `
-         @commonParameterSwitches
+         -Verbose `
+         -ErrorAction Continue
 
     # Wait for machine to turn off. Wait for a maximum of 5 minutes before we fail it.
     $isRunning = $true
-    $timeout = [System.TimeSpan]::FromMinutes(10)
+    $timeout = [System.TimeSpan]::FromMinutes(20)
     $killTime = [System.DateTimeOffset]::Now + $timeout
-    while ($isRunning)
+    $hasFailed = $false
+    
+    Write-Verbose "SysPrep is shutting down machine. Waiting ..."
+    try
     {
-        $vm = Get-AzureVM -Name $vmName
-        if ($vm.Status -eq "StoppedDeallocated")
+        while ($isRunning)
         {
-            $isRunning = $false
-        }
+            $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
+            Write-Verbose ("$vmName is status: " + $vm.Status)
+            
+            if (($vm.Status -eq "StoppedDeallocated") -or ($vm.Status -eq "StoppedVM"))
+            {
+                Write-Verbose "VM stopped"
+                $isRunning = $false
+            }
 
-        if ([System.DateTimeOffset]::Now -gt $killTime)
-        {
-            $isRunning = false;
-            throw "Virtual machine Sysprep failed to complete within $timeout"
+            if ([System.DateTimeOffset]::Now -gt $killTime)
+            {
+                Write-Verbose "VM failed to stop within time-out"
+                $isRunning = false;
+                $hasFailed = $true
+            }
         }
     }
+    catch
+    {
+        Write-Verbose "Failed during time-out loop"
+        # failed. Just ignore it
+    }
 
+    if ($hasFailed)
+    {
+        throw "Virtual machine Sysprep failed to complete within $timeout"
+    }
+
+    Write-Verbose "Sysprep complete. Starting image creation"
+
+    Write-Verbose "ServiceName: $resourceGroupName"
+    Write-Verbose "Name: $vmName"
+    Write-Verbose "ImageName: $imageName"
+    Write-Verbose "ImageLabel: $imageLabel"
     Save-AzureVMImage -ServiceName $resourceGroupName -Name $vmName -ImageName $imageName -OSState Generalized -ImageLabel $imageLabel  @commonParameterSwitches
 }

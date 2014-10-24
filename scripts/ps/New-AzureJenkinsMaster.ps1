@@ -96,11 +96,17 @@ try
         -adminName $adminName `
         -adminPassword $adminPassword
 
+    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
+    Write-Verbose ("New-AzureVmFromTemplate complete - VM state: " + $vm.Status)
+
     $session = Get-PSSessionForAzureVM `
         -resourceGroupName $resourceGroupName `
         -vmName $vmName `
         -adminName $adminName `
         -adminPassword $adminPassword
+
+    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
+    Write-Verbose ("Get-PSSessionForAzureVM complete - VM state: " + $vm.Status)
     
     # Create the installer directory on the virtual machine
     $filesToCopy = Get-ChildItem -Path $installationDirectory -Recurse -Force @commonParameterSwitches | 
@@ -108,6 +114,9 @@ try
         Select-Object -ExpandProperty FullName
     $remoteDirectory = 'c:\installers'
     Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy $filesToCopy
+
+    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
+    Write-Verbose ("Add-AzureFilesToVM complete - VM state: " + $vm.Status)
 
     # Execute the remote installation scripts
     Invoke-Command `
@@ -122,6 +131,9 @@ try
         } `
          @commonParameterSwitches
 
+    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
+    Write-Verbose ("Execute installation script complete - VM state: " + $vm.Status)
+
     New-AzureSyspreppedVMImage -session $session -resourceGroupName $resourceGroupName -vmName $vmName -imageName $imageName -imageLabel $imageLabel
 }
 finally
@@ -129,6 +141,8 @@ finally
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     if ($vm -ne $null)
     {
-        Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
+        #Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
     }
 }
+
+
