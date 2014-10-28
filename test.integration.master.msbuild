@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0"
+         DefaultTargets="BuildTools_Test_Unit_Pester_Run"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <!-- Defines whether the current script file has been loaded / imported or not -->
+        <ExistsTestIntegrationMaster>true</ExistsTestIntegrationMaster>
+        
+        <!-- The full path to the settings file that contains all the settings for the build process -->
+        <BuildPropertyFile Condition=" '$(BuildPropertyFile)' == '' ">UNDEFINED</BuildPropertyFile>
+    </PropertyGroup>
+
+    <Import Project="$(BuildPropertyFile)"
+            Condition="Exists('$(BuildPropertyFile)') AND '$(ExistsSettings)' != 'true' " />
+    
+    <PropertyGroup>
+        <!-- Build flags -->
+        <ShouldDisplayDebugLog Condition=" '$(ShouldDisplayDebugLog)' == '' ">false</ShouldDisplayDebugLog>
+        <ShouldExecute Condition=" '$(ShouldExecute)' == '' ">true</ShouldExecute>
+        
+        <!-- Directories -->
+        <DirWorkspace Condition=" '$(DirWorkspace)' == '' ">$([System.IO.Path]::GetDirectoryName('$(BuildPropertyFile)'))</DirWorkspace>
+        <DirBuild Condition=" '$(DirBuild)' == '' ">$(DirWorkspace)\build</DirBuild>
+        <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
+        <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
+        <DirPackages Condition=" '$(DirPackages)' == '' ">$(DirWorkspace)\packages</DirPackages>
+        <DirSrc Condition=" '$(DirSrc)' == '' ">$(DirWorkspace)\src</DirSrc>
+        <DirReportGeneratorOutput Condition=" '$(DirReportGeneratorOutput)' == '' ">$(DirBuildLogs)\coverage</DirReportGeneratorOutput>
+        
+        <!-- nBuildKit directories -->
+        <DirMsBuildExtensions Condition=" '$(DirMsBuildExtensions)' == '' ">$(MSBuildProjectDirectory)\extensions</DirMsBuildExtensions>
+        <DirMsBuildShared Condition=" '$(DirMsBuildShared)' == '' ">$(MSBuildProjectDirectory)</DirMsBuildShared>
+        
+        <!-- Files -->
+        <FileReportPesterXml Condition=" '$(FileReportPesterXml)' == '' ">$(DirBuildLogs)\pester.xml</FileReportPesterXml>
+        
+        <!-- tests -->
+        <TestDirectoryPrefix Condition=" '$(TestDirectoryPrefix)' == '' " >test.integration</TestDirectoryPrefix>
+        
+        <!-- External tools -->
+        <ToolsExternalPowershellPath Condition=" '$(ToolsExternalPowershellPath)' == '' ">C:\Windows\System32\WindowsPowerShell\v1.0</ToolsExternalPowershellPath>
+        <ToolsExternalPesterPath Condition=" '$(ToolsExternalPesterPath)' == '' ">UNDEFINED</ToolsExternalPesterPath>
+    </PropertyGroup>
+    
+    <Import Project="$(DirMsBuildShared)\shared.templatetokens.msbuild" 
+            Condition="Exists('$(DirMsBuildShared)\shared.templatetokens.msbuild') AND '$(ExistsSharedTemplateTokens)' != 'true' " />
+
+    <Import Project="$(DirMsBuildExtensions)\SearchPackagesDirectoryForToolDirectory.msbuild" 
+            Condition="Exists('$(DirMsBuildExtensions)\SearchPackagesDirectoryForToolDirectory.msbuild') AND '$(ExistsExtensionsSearchPackagesDirectoryForToolDirectory)' != 'true' " />
+    <Import Project="$(DirMsBuildExtensions)\TemplateText.msbuild" 
+            Condition="Exists('$(DirMsBuildExtensions)\TemplateText.msbuild') AND '$(ExistsExtensionsTemplateText)' != 'true' " />
+            
+    <Target Name="BuildTools_Test_Unit_Pester_Run" 
+            DependsOnTargets="_BuildTools_Test_Unit_Pester_DisplayInfo">
+        <CallTarget Targets="_BuildTools_Test_Unit_Pester_Execute" />
+    </Target>
+    
+    <!-- Display info -->
+    <Target Name="_BuildTools_Test_Unit_Pester_DisplayInfo" 
+            DependsOnTargets="_BuildTools_Test_Unit_Pester_DebugLog">
+        <Message Text="Running unit tests with Pester ..." />
+    </Target>
+    
+    <Target Name="_BuildTools_Test_Unit_Pester_DebugLog" 
+            Condition="$(ShouldDisplayDebugLog)"
+            DependsOnTargets="_BuildTools_Test_Unit_Pester_ReplaceBuildTemplates">
+        <Message Text="Project directory structure:" />
+        <Message Text="The workspace is located at:                                                     $(DirWorkspace)" />
+        <Message Text="The directory containing the build output is located at:                         $(DirBuild)" />
+        <Message Text="The directory containing the build logs is located at:                           $(DirBuildLogs)" />
+        <Message Text="The directory containing the temporary build files is located at:                $(DirBuildTemp)" />
+        <Message Text="The directory containing the NuGet packages is located at:                       $(DirPackages)" />
+        <Message Text="The directory containing the source code is located at:                          $(DirSrc)" />
+        <Message Text="The directory containing the nBuildKit scripts is located at:                    $(DirMsBuildExtensions)" />
+        <Message Text=" " />
+        
+        <Message Text="The Pester XML report will be located at:               $(FileReportPesterXmlExpanded)" />
+        <Message Text=" " />
+        
+        <Message Text="Pester command line executable is located at:          $(ToolsExternalPesterPath)" />
+        <Message Text=" " />
+    </Target>
+    
+    <Target Name="_BuildTools_Test_Unit_Pester_ReplaceBuildTemplates" 
+            DependsOnTargets="nBuildKit_Shared_TemplateTokens_Initialize">
+        <Message Text="Resolving build templates ..." />
+        
+        <TemplateText Template="$(FileReportPesterXml)"
+                      Tokens="@(TemplateTokens)">
+            <Output TaskParameter="Result" PropertyName="FileReportPesterXmlExpanded" />
+        </TemplateText>
+    </Target>
+    
+    <PropertyGroup>
+        <DirSrcPesterTests>$(DirSrc)\$(TestDirectoryPrefix).scripts</DirSrcPesterTests>
+    </PropertyGroup>
+    <Target Name="_BuildTools_Test_Unit_Pester_Execute"
+            DependsOnTargets="_BuildTools_Test_Unit_Pester_ReplaceBuildTemplates">
+        <Error Text="The packages directory does not exist. Cannot search for the unit test executables."
+               Condition="!Exists('$(DirPackages)') AND '$(ShouldExecute)' == 'true' "/>
+        
+        <CreateProperty Value="$([System.IO.Path]::GetDirectoryName('$(FileReportPesterXmlExpanded)'))">
+            <Output TaskParameter="Value" PropertyName="DirToCreate" />
+        </CreateProperty>
+        <MakeDir Directories="$(DirToCreate)" Condition="!Exists('$(DirToCreate)') AND '$(ShouldExecute)' == 'true' " />
+        
+        <SearchPackagesDirectoryForToolDirectory PackagesDir="$(DirPackages)" 
+                                            FileToLocate="Pester.psm1"
+                                            Condition=" '$(ToolsExternalPesterPath)' == 'UNDEFINED' AND  '$(ShouldExecute)' == 'true' ">
+            <Output TaskParameter="Path" PropertyName="ToolsExternalPesterPath" />
+        </SearchPackagesDirectoryForToolDirectory>
+        <Message Text="The Pester module was found at: $(ToolsExternalPesterPath)"
+                 Condition="Exists('$(ToolsExternalPesterPath)') AND '$(ShouldExecute)' == 'true' " />
+        <Error Text="Could not locate the Pester module path. Cannot execute unit tests."
+               Condition="!Exists('$(ToolsExternalPesterPath)') AND '$(ShouldExecute)' == 'true' "/>
+
+        <!-- Make sure the whole thing stops if something goes wrong -->
+        <CreateProperty Value="$ErrorActionPreference = &#39;Stop&#39; ">
+            <Output TaskParameter="Value" PropertyName="CommandErrorActionPreference" />
+        </CreateProperty>
+        
+        <!-- Add the Pester directory to the module path because otherwise Powershell can't load the Pester module -->
+        <CreateProperty Value="$env:PSModulePath = $env:PSModulePath + &#39;&#059;&#39; + &#39;$(ToolsExternalPesterPath)&#39;">
+            <Output TaskParameter="Value" PropertyName="CommandAddToPsModulePath" />
+        </CreateProperty>
+        
+        <!-- Import Pester -->
+        <CreateProperty Value="&amp; Import-Module &#39;$(ToolsExternalPesterPath)\Pester.psm1&#39; ">
+            <Output TaskParameter="Value" PropertyName="CommandImportPester" />
+        </CreateProperty>
+        
+        <!-- 
+            Execute the pester tests and store the results. Then use the number of failed tests as the exit code.
+            In theory it possible to use the -EnableExit option in Pester to return an exit code
+            but somehow that doesn't actually set the correct exit code (i.e. $LastExitCode is empty and powershell still exits with a 0 exit code even
+            if there are failed tests).
+        -->
+        <CreateProperty Value="$result = Invoke-Pester -Path &#39;$(DirSrcPesterTests)&#39; -OutputXml &#39;$(FileReportPesterXml)&#39; -PassThru -Verbose &#059; exit $result.FailedCount">
+            <Output TaskParameter="Value" PropertyName="CommandInvokePester" />
+        </CreateProperty>
+        
+        <CreateProperty Value="try { $(CommandErrorActionPreference) &#059; $(CommandAddToPsModulePath) &#059; $(CommandImportPester) &#059; $(CommandInvokePester) } catch { exit 1 }">
+            <Output TaskParameter="Value" PropertyName="CommandPester" />
+        </CreateProperty>
+        <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandPester) &quot;" />
+    </Target>
+ </Project>

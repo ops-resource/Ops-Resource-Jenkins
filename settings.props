@@ -235,14 +235,15 @@
             <PostInvokeScripts></PostInvokeScripts>
         </BuildStepsToExecute>
         -->
-        <!--
         <BuildStepsToExecute Include="$(BuildTargetExecuteUnitTests)">
             <Steps>
-                $(BuildStepsUnitTestNUnit)
             </Steps>
             <PreInvokeScripts></PreInvokeScripts>
-            <PostInvokeScripts></PostInvokeScripts>
+            <PostInvokeScripts>
+                $(DirWorkspace)\test.integration.master.msbuild
+            </PostInvokeScripts>
         </BuildStepsToExecute>
+        <!--
         <BuildStepsToExecute Include="$(BuildTargetAnalyzeBinaries)">
             <Steps>
                 $(BuildStepsAnalyzeBinariesMoma);
