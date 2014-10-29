@@ -1,6 +1,7 @@
 [CmdletBinding(SupportsShouldProcess = $True)]
 param(
     [string] $configFile = $(throw "Please provide a configuration file path."),
+    [string] $createdImage = $(throw "Please provide the name of the newly created image"),
     [string] $azureScriptDirectory = $PSScriptRoot
 )
 
@@ -15,7 +16,7 @@ $commonParameterSwitches =
     }
 
 # Load the helper functions
-$azureHelpers = Join-Path $azureScriptDirectory Azure.ps1
+$azureHelpers = Join-Path $PSScriptRoot Azure.ps1
 . $azureHelpers
 
 if (-not (Test-Path $configFile))
@@ -56,20 +57,11 @@ Write-Verbose "adminName: $adminName"
 
 $adminPassword = $config.authentication.admin.password
 
-$baseImage = $config.service.image.baseimage
-Write-Verbose "baseImage: $baseImage"
-
 $storageAccount = $config.service.image.storageaccount
 Write-Verbose "storageAccount: $storageAccount"
 
 $resourceGroupName = $config.service.name
 Write-Verbose "resourceGroupName: $resourceGroupName"
-
-$installationDirectory = $config.desiredstate.installerpath
-Write-Verbose "installationDirectory: $installationDirectory"
-
-$installationScript = $config.desiredstate.entrypoint.name
-Write-Verbose "installationScript: $installationScript"
 
 $imageName = $config.service.image.name
 Write-Verbose "imageName: $imageName"
@@ -80,14 +72,16 @@ Write-Verbose "imageLabel: $imageLabel"
 # Set the storage account for the selected subscription
 Set-AzureSubscription -SubscriptionName $subscriptionName -CurrentStorageAccount $storageAccount @commonParameterSwitches
 
-# The name of the VM is technically irrevant because we're only after the disk in the end. So make sure it's unique but don't bother 
-# with an actual name
+
+# The name of the VM is technically irrevant because we're only going to create it to check that the image is correct. 
+# So make sure it's unique but don't bother with an actual name
 $now = [System.DateTimeOffset]::Now
-$vmName = ("ajm-" + $now.DayOfYear.ToString("000") + "-" + $now.Hour.ToString("00") + $now.Minute.ToString("00") + $now.Second.ToString("00"))
+$vmName = ("tajm-" + $now.DayOfYear.ToString("000") + "-" + $now.Hour.ToString("00") + $now.Minute.ToString("00") + $now.Second.ToString("00"))
 Write-Verbose "vmName: $vmName"
 
 try
 {
+    # Create a VM with the template
     New-AzureVmFromTemplate `
         -resourceGroupName $resourceGroupName `
         -storageAccount $storageAccount `
@@ -97,29 +91,13 @@ try
         -adminName $adminName `
         -adminPassword $adminPassword
 
-    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
-    Write-Verbose ("New-AzureVmFromTemplate complete - VM state: " + $vm.Status)
-
     $session = Get-PSSessionForAzureVM `
         -resourceGroupName $resourceGroupName `
         -vmName $vmName `
         -adminName $adminName `
         -adminPassword $adminPassword
 
-    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
-    Write-Verbose ("Get-PSSessionForAzureVM complete - VM state: " + $vm.Status)
-    
-    # Create the installer directory on the virtual machine
-    $filesToCopy = Get-ChildItem -Path $installationDirectory -Recurse -Force @commonParameterSwitches | 
-        Where-Object { -not $_.PsIsContainer } |
-        Select-Object -ExpandProperty FullName
-    $remoteDirectory = 'c:\installers'
-    Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy $filesToCopy
-
-    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
-    Write-Verbose ("Add-AzureFilesToVM complete - VM state: " + $vm.Status)
-
-    # Execute the remote installation scripts
+    # Verify that everything is there
     Invoke-Command `
         -Session $session `
         -ArgumentList @( (Join-Path $remoteDirectory (Split-Path -Leaf $installationScript)) ) `
@@ -132,18 +110,14 @@ try
         } `
          @commonParameterSwitches
 
-    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
-    Write-Verbose ("Execute installation script complete - VM state: " + $vm.Status)
-
-    New-AzureSyspreppedVMImage -session $session -resourceGroupName $resourceGroupName -vmName $vmName -imageName $imageName -imageLabel $imageLabel
 }
 finally
 {
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     if ($vm -ne $null)
     {
-        #Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
+        Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
     }
+
+    # if failure then we should get rid of the VM image as well
 }
-
-
