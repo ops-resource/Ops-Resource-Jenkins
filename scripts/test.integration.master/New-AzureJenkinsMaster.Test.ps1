@@ -114,6 +114,16 @@ try
         } `
          @commonParameterSwitches
 
+    $logEntries = $result.Log
+    foreach($entry in $logEntries)
+    {
+        $entry.Write
+    }
+
+    if (-not $result.HasPassed)
+    {
+        throw "Test FAILED"
+    }
 }
 finally
 {
