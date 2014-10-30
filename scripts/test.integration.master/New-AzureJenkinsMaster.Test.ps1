@@ -15,7 +15,7 @@ $commonParameterSwitches =
     }
 
 # Load the helper functions
-$azureHelpers = Join-Path $PSScriptRoot Azure.ps1
+$azureHelpers = Join-Path $azureScriptDirectory Azure.ps1
 . $azureHelpers
 
 if (-not (Test-Path $configFile))
