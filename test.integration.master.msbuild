@@ -41,7 +41,7 @@
         <!-- Files -->
         <FileSemanticVersion Condition=" '$(FileSemanticVersion)' == '' ">$(DirBuildTemp)\semantic_version.json</FileSemanticVersion>
         <FileJenkinsMasterConfig Condition=" '$(FileJenkinsMasterConfig)' == '' ">$(DirBuildTemp)\jenkinsmaster.xml</FileJenkinsMasterConfig>
-        <FileJenkinsMasterTestScript Condition=" '$(FileJenkinsMasterTestScript)' == '' ">$(DirScriptsMaster)\New-AzureJenkinsMaster.ps1</FileJenkinsMasterTestScript>
+        <FileJenkinsMasterTestScript Condition=" '$(FileJenkinsMasterTestScript)' == '' ">$(DirScriptsTestsMaster)\New-AzureJenkinsMaster.Test.ps1</FileJenkinsMasterTestScript>
         
         <FileRemoteInstallerMain Condition=" '$(FileRemoteInstallerMain)' == '' ">$(DirBuildTempSetupInstallers)\Set-JenkinsMaster.ps1</FileRemoteInstallerMain>
         
