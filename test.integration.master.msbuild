@@ -105,5 +105,7 @@
             <Output TaskParameter="Value" PropertyName="CommandTest" />
         </CreateProperty>
         <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandTest) &quot;" />
+        
+        <!-- On Failure nuke the disk? -->
     </Target>
  </Project>

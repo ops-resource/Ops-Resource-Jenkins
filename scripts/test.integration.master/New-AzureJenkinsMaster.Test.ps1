@@ -1,7 +1,6 @@
 [CmdletBinding(SupportsShouldProcess = $True)]
 param(
     [string] $configFile = $(throw "Please provide a configuration file path."),
-    [string] $createdImage = $(throw "Please provide the name of the newly created image"),
     [string] $azureScriptDirectory = $PSScriptRoot
 )
 
@@ -85,7 +84,7 @@ try
     New-AzureVmFromTemplate `
         -resourceGroupName $resourceGroupName `
         -storageAccount $storageAccount `
-        -baseImage $baseImage `
+        -baseImage $imageName `
         -vmName $vmName `
         -sslCertificateName $sslCertificateName `
         -adminName $adminName `
@@ -97,16 +96,21 @@ try
         -adminName $adminName `
         -adminPassword $adminPassword
 
+    $verificationScript = Join-Path $PSScriptRoot 'Test-AzureJenkinsMaster.ps1'
+    $remoteDirectory = 'c:\verification'
+    Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy @( $verificationScript )
+
     # Verify that everything is there
-    Invoke-Command `
+    $testResult = Invoke-Command `
         -Session $session `
-        -ArgumentList @( (Join-Path $remoteDirectory (Split-Path -Leaf $installationScript)) ) `
+        -ArgumentList @( (Join-Path $remoteDirectory (Split-Path -Leaf $verificationScript)) ) `
         -ScriptBlock {
             param(
-                [string] $installationScript
+                [string] $verificationScript
             )
         
-            & $installationScript
+            $result = & $verificationScript
+            return $result
         } `
          @commonParameterSwitches
 
@@ -118,6 +122,4 @@ finally
     {
         Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
     }
-
-    # if failure then we should get rid of the VM image as well
 }
