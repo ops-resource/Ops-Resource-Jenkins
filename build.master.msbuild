@@ -47,8 +47,8 @@
         <FileJenkinsMasterConfigTemplate Condition=" '$(FileJenkinsMasterConfigTemplate)' == '' ">$(DirConfig)\jenkinsmaster.xml</FileJenkinsMasterConfigTemplate>
         <FileJenkinsMasterConfig Condition=" '$(FileJenkinsMasterConfig)' == '' ">$(DirBuildTemp)\jenkinsmaster.xml</FileJenkinsMasterConfig>
         <FileJenkinsMasterScript Condition=" '$(FileJenkinsMasterScript)' == '' ">$(DirScriptsMaster)\New-AzureJenkinsMaster.ps1</FileJenkinsMasterScript>
-        
         <FileRemoteInstallerMain Condition=" '$(FileRemoteInstallerMain)' == '' ">$(DirBuildTempSetupInstallers)\Set-JenkinsMaster.ps1</FileRemoteInstallerMain>
+        <FileErrorRemoveImage Condition=" '$(FileErrorRemoveImage)' == '' ">$(DirWorkspace)\error.remove.image.msbuild</FileErrorRemoveImage>
         
         <!-- Version number -->
         <VersionSemantic>0</VersionSemantic>
@@ -170,5 +170,12 @@
         </CreateProperty>
         <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandAzureJenkinsMaster) &quot;"
               LogStandardErrorAsError="true" />
+        
+        <!-- On Failure nuke the image -->
+        <OnError ExecuteTargets="_Build_Master_RemoveImage" />
+    </Target>
+    
+    <Target Name="_Build_Master_RemoveImage" >
+        <MsBuild Projects="$(FileErrorRemoveImage)" Properties="FileJenkinsConfig=$(FileJenkinsMasterConfig);BuildPropertyFile=$(BuildPropertyFile)" />
     </Target>
 </Project>

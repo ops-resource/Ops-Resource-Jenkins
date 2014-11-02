@@ -326,3 +326,23 @@ function New-AzureSyspreppedVMImage
     Write-Verbose "ImageLabel: $imageLabel"
     Save-AzureVMImage -ServiceName $resourceGroupName -Name $vmName -ImageName $imageName -OSState Generalized -ImageLabel $imageLabel  @commonParameterSwitches
 }
+
+function Remove-AzureSyspreppedVMImage
+{
+    [CmdletBinding()]
+    param(
+        [string] $imageName
+    )
+
+    # Stop everything if there are errors
+    $ErrorActionPreference = 'Stop'
+
+    $commonParameterSwitches =
+        @{
+            Verbose = $PSBoundParameters.ContainsKey('Verbose');
+            Debug = $PSBoundParameters.ContainsKey('Debug');
+            ErrorAction = "Stop"
+        }
+
+    Remove-AzureVMImage -ImageName $imageName -DeleteVHD @commonParameterSwitches
+}
