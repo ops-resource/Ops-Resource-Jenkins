@@ -96,12 +96,17 @@
             <Output TaskParameter="Value" PropertyName="CommandErrorActionPreference" />
         </CreateProperty>
         
+        <!-- Import Azure -->
+        <CreateProperty Value="Import-Module Azure">
+            <Output TaskParameter="Value" PropertyName="CommandImportAzure" />
+        </CreateProperty>
+        
         <!-- Execute the tests and store the results. -->
         <CreateProperty Value="&amp; &#39;$(FileJenkinsMasterTestScript)&#39; -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -Verbose">
             <Output TaskParameter="Value" PropertyName="CommandInvokeTest" />
         </CreateProperty>
         
-        <CreateProperty Value="$(CommandErrorActionPreference) &#059; $(CommandInvokeTest)">
+        <CreateProperty Value="$(CommandErrorActionPreference) &#059; $(CommandImportAzure) &#059; $(CommandInvokeTest)">
             <Output TaskParameter="Value" PropertyName="CommandTest" />
         </CreateProperty>
         <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandTest) &quot;" />
