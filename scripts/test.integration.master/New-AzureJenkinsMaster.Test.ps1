@@ -114,15 +114,26 @@ try
         } `
          @commonParameterSwitches
 
-    $logEntries = $result.Log
+    Write-Output "Logs:"
+    $logEntries = $testResult.Log
     foreach($entry in $logEntries)
     {
-        $entry.Write
+        if ($entry.MessageType -eq "Info")
+        {
+            Write-Output "LOG: $($entry.DateTime) - $($entry.Message)"
+            continue
+        }
+
+        Write-Error "ERROR: $($entry.DateTime) - $($entry.Message)"
     }
 
-    if (-not $result.HasPassed)
+    if (-not $testResult.HasPassed)
     {
         throw "Test FAILED"
+    }
+    else
+    {
+        Write-Output "Test PASSED"
     }
 }
 finally
