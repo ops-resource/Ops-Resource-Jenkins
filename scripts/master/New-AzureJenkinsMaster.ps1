@@ -1,3 +1,47 @@
+<#
+    .SYNOPSIS
+ 
+    Creates a new Azure VM image for a Windows machine that can serve as a Jenkins master.
+ 
+ 
+    .DESCRIPTION
+ 
+    The New-AzureJenkinsMaster script creates a new Azure VM image for a Windows machine that can serve as a Jenkins master.
+ 
+ 
+    .PARAMETER configFile
+ 
+    The full path to the configuration file that contains all the information about the setup of the jenkins master VM. The XML file is expected to look like:
+
+    <?xml version="1.0" encoding="utf-8"?>
+    <configuration>
+        <authentication>
+            <certificate name="${CertificateName}" />
+        </authentication>
+        <cloudservice name="${ServiceName}" location="${ServiceLocation}" affinity="${ServiceAffinity}">
+            <domain name="${DomainName}" organizationalunit="${DomainOrganizationalUnit}">
+                <admin domainname="${DomainNameForAdmin}" name="${AdminUserName}" password="${AdminPassword}" />
+            </domain>
+            <image name="${ImageName}" label="${ImageLabel}">
+                <baseimage>${BaseImageName}</baseimage>
+            </machine>
+        </cloudservice>
+        <desiredstate>
+            <installerpath>${DirectoryWithInstallers}</installerpath>
+            <entrypoint name="${InstallerMainScriptName}" />
+        </desiredstate>
+    </configuration>
+ 
+ 
+    .PARAMETER azureScriptDirectory
+ 
+    The full path to the directory that contains the Azure helper scripts. Defaults to the directory containing the current script.
+ 
+ 
+    .EXAMPLE
+ 
+    New-AzureJenkinsMaster -configFile 'c:\temp\azurejenkinsmaster.xml' -azureScriptDirectory 'c:\temp\source'
+#>
 [CmdletBinding(SupportsShouldProcess = $True)]
 param(
     [string] $configFile = $(throw "Please provide a configuration file path."),
