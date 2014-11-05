@@ -1,3 +1,33 @@
+<#
+    .SYNOPSIS
+ 
+    Copies a file to the given remote path on the machine that the session is connected to.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Copy-ItemToRemoteMachine function copies a local file to the given remote path on the machine that the session is connected to.
+ 
+ 
+    .PARAMETER localPath
+ 
+    The full path of the file that should be copied.
+ 
+ 
+    .PARAMETER remotePath
+ 
+    The full file path to which the local file should be copied
+ 
+ 
+    .PARAMETER session
+ 
+    The PSSession that provides the connection between the local machine and the remote machine.
+ 
+ 
+    .EXAMPLE
+ 
+    Copy-ItemToRemoteMachine -localPath 'c:\temp\myfile.txt' -remotePath 'c:\remote\myfile.txt' -session $session
+#>
 function Copy-ItemToRemoteMachine
 {
     [CmdletBinding()]
@@ -92,6 +122,67 @@ function Copy-ItemToRemoteMachine
     }
 }
 
+<#
+    .SYNOPSIS
+ 
+    Creates a new Azure VM from a given base image in the given resource group.
+ 
+ 
+    .DESCRIPTION
+ 
+    The New-AzureVMFromTemplate function creates a new Azure VM in the given resources group. The VM will be based on 
+    the provided image.
+ 
+ 
+    .PARAMETER resourceGroupName
+ 
+    The name of the resource group in which the VM should be created.
+ 
+ 
+    .PARAMETER storageAccount
+ 
+    The name of the storage account in which the VM should be created. This storage account should be linked to the given
+    resource group.
+ 
+ 
+    .PARAMETER baseImage
+ 
+    The full name of the image that the VM should be based on.
+ 
+ 
+    .PARAMETER vmName
+ 
+    The azure name of the VM. This will also be the computer name. May contain a maximum of 15 characters.
+
+
+    .PARAMETER sslCertificateName
+ 
+    The subject name of the SSL certificate in the user root store that can be used for WinRM communication with the VM. The certificate
+    should have an exportable private key. Note that the certificate name has to match the public name of the machine, most likely 
+    $resourceName.cloudapp.net. Defaults to '$resourceGroupName.cloudapp.net'
+
+
+    .PARAMETER adminName
+ 
+    The name for the administrator account. Defaults to 'TheBigCheese'.
+
+
+    .PARAMETER adminPassWord
+ 
+    The password for the administrator account.
+ 
+ 
+    .EXAMPLE
+ 
+    New-AzureVMFromTemplate 
+        -resourceGroupName 'jenkinsresource'
+        -storageAccount 'jenkinsstorage'
+        -baseImage 'a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-201409.01-en.us-127GB.vhd'
+        -vmName 'ajm-305-220615'
+        -sslCertificateName 'jenkinsresource.cloudapp.net'
+        -adminName 'TheOneInCharge'
+        -adminPassword 'PeanutsOrMaybeNot'
+#>
 function New-AzureVMFromTemplate
 {
     [CmdletBinding()]
@@ -100,8 +191,8 @@ function New-AzureVMFromTemplate
         [string] $storageAccount,
         [string] $baseImage,
         [string] $vmName,
-        [string] $sslCertificateName,
-        [string] $adminName,
+        [string] $sslCertificateName = "$resourceGroupName.cloudapp.net",
+        [string] $adminName = 'TheBigCheese',
         [string] $adminPassword
     )
 
@@ -142,6 +233,51 @@ function New-AzureVMFromTemplate
     New-AzureVM -ServiceName $resourceGroupName -VMs $vmConfig -WaitForBoot @commonParameterSwitches
 }
 
+<#
+    .SYNOPSIS
+ 
+    Gets a PSSession that can be used to connect to the remote virtual machine.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Get-PSSessionForAzureVM function returns a PSSession that can be used to use Powershell remoting to connect to the virtual
+    machine with the given name.
+ 
+ 
+    .PARAMETER resourceGroupName
+ 
+    The name of the resource group in which the VM exists.
+ 
+ 
+    .PARAMETER vmName
+ 
+    The azure name of the VM.
+ 
+ 
+    .PARAMETER adminName
+ 
+    The name for the administrator account.
+ 
+ 
+    .PARAMETER adminPassword
+ 
+    sThe password for the administrator account.
+ 
+
+    .OUTPUTS
+
+    Returns the PSSession for the connection to the VM with the given name.
+
+ 
+    .EXAMPLE
+ 
+    Get-PSSessionForAzureVM
+        -resourceGroupName 'jenkinsresource'
+        -vmName 'ajm-305-220615'
+        -adminName 'TheOneInCharge'
+        -adminPassword 'PeanutsOrMaybeNot'
+#>
 function Get-PSSessionForAzureVM
 {
     [CmdletBinding()]
@@ -175,6 +311,36 @@ function Get-PSSessionForAzureVM
     return $session
 }
 
+<#
+    .SYNOPSIS
+ 
+    Copies a set of files to a remote directory on a given Azure VM.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Add-AzureFilesToVM function copies a set of files to a remote directory on a given Azure VM.
+ 
+ 
+    .PARAMETER session
+ 
+    The PSSession that provides the connection between the local machine and the remote machine.
+ 
+ 
+    .PARAMETER remoteDirectory
+ 
+    The full path to the remote directory into which the files should be copied. Defaults to 'c:\installers'
+ 
+ 
+    .PARAMETER filesToCopy
+ 
+    The collection of local files that should be copied.
+ 
+ 
+    .EXAMPLE
+ 
+    Add-AzureFilesToVM -session $session -remoteDirectory 'c:\temp' -filesToCopy (Get-ChildItem c:\temp -recurse)
+#>
 function Add-AzureFilesToVM
 {
     param(
@@ -220,6 +386,51 @@ function Add-AzureFilesToVM
     }
 }
 
+<#
+    .SYNOPSIS
+ 
+    Syspreps an Azure VM and then creates an image from it.
+ 
+ 
+    .DESCRIPTION
+ 
+    The New-AzureSyspreppedVMImage function executes sysprep on a given Azure VM and then once the VM is shut down creates an image from it.
+ 
+ 
+    .PARAMETER session
+ 
+    The PSSession that provides the connection between the local machine and the remote machine.
+ 
+ 
+    .PARAMETER resourceGroupName
+ 
+    The name of the resource group in which the VM exists.
+ 
+ 
+    .PARAMETER vmName
+ 
+    The azure name of the VM.
+ 
+ 
+    .PARAMETER imageName
+ 
+    The name of the image.
+
+
+    .PARAMETER imageLabel
+ 
+    The label of the image.
+ 
+ 
+    .EXAMPLE
+ 
+    New-AzureSyspreppedVMImage
+        -session $session
+        -resourceGroupName 'jenkinsresource'
+        -vmName 'ajm-305-220615'
+        -imageName "jenkins-master-win2012R2_0.2.0"
+        -imageLabel "Jenkins master on Windows Server 2012 R2"
+#>
 function New-AzureSyspreppedVMImage
 {
     [CmdletBinding()]
@@ -327,6 +538,26 @@ function New-AzureSyspreppedVMImage
     Save-AzureVMImage -ServiceName $resourceGroupName -Name $vmName -ImageName $imageName -OSState Generalized -ImageLabel $imageLabel  @commonParameterSwitches
 }
 
+<#
+    .SYNOPSIS
+ 
+    Removes a VM image from the user library.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Remove-AzureSyspreppedVMImage function removes a VM image from the user library.
+ 
+ 
+    .PARAMETER imageName
+ 
+    The name of the image.
+ 
+ 
+    .EXAMPLE
+ 
+    Remove-AzureSyspreppedVMImage -imageName "jenkins-master-win2012R2_0.2.0"
+#>
 function Remove-AzureSyspreppedVMImage
 {
     [CmdletBinding()]
