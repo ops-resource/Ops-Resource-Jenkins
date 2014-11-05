@@ -1,6 +1,24 @@
+<#
+    .SYNOPSIS
+ 
+    Executes the tests that verify whether the current machine has all the tools installed to allow it to work as a Windows Jenkins master.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Test-AzureJenkinsMaster script executes the tests that verify whether the current machine has all the tools installed to allow it to work as a Windows Jenkins master.
+ 
+ 
+    .EXAMPLE
+ 
+    Test-AzureJenkinsMaster
+#>
 [CmdletBinding()]
 param()
 
+<#
+    
+#>
 function New-Error{
     param(
         [string] $errorText
@@ -16,6 +34,9 @@ function New-Error{
     $errorResult
 }
 
+<#
+
+#>
 function New-Information{
     param(
         [string] $infoText
