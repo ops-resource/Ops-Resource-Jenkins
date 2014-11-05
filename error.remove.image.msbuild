@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0"
+         DefaultTargets="Error_Remove_Image_Run"
+         xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <!-- Defines whether the current script file has been loaded / imported or not -->
+        <ExistsErrorRemoveImage>true</ExistsErrorRemoveImage>
+        
+        <!-- The full path to the settings file that contains all the settings for the build process -->
+        <BuildPropertyFile Condition=" '$(BuildPropertyFile)' == '' ">UNDEFINED</BuildPropertyFile>
+    </PropertyGroup>
+
+    <Import Project="$(BuildPropertyFile)"
+            Condition="Exists('$(BuildPropertyFile)') AND '$(ExistsSettings)' != 'true' " />
+    
+    <PropertyGroup>
+        <!-- Build flags -->
+        <ShouldDisplayDebugLog Condition=" '$(ShouldDisplayDebugLog)' == '' ">false</ShouldDisplayDebugLog>
+        <ShouldExecute Condition=" '$(ShouldExecute)' == '' ">true</ShouldExecute>
+        
+        <!-- Directories -->
+        <DirWorkspace Condition=" '$(DirWorkspace)' == '' ">$([System.IO.Path]::GetDirectoryName('$(BuildPropertyFile)'))</DirWorkspace>
+        <DirBuild Condition=" '$(DirBuild)' == '' ">$(DirWorkspace)\build</DirBuild>
+        <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
+
+        <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
+        <DirScriptsAzure Condition=" '$(DirScriptsAzure)' == '' ">$(DirScripts)\azure</DirScriptsAzure>
+        
+        <!-- External tools -->
+        <ToolsExternalPowershellPath Condition=" '$(ToolsExternalPowershellPath)' == '' ">C:\Windows\System32\WindowsPowerShell\v1.0</ToolsExternalPowershellPath>
+        
+        <!-- Files -->
+        <FileJenkinsConfig Condition=" '$(FileJenkinsConfig)' == '' ">$(DirBuildTemp)\jenkinsmaster.xml</FileJenkinsConfig>
+    </PropertyGroup>
+           
+    <Target Name="Error_Remove_Image_Run" 
+            DependsOnTargets="_Error_Remove_Image_DisplayInfo">
+        <CallTarget Targets="_Error_Remove_Image_Execute" />
+    </Target>
+    
+    <!-- Display info -->
+    <Target Name="_Error_Remove_Image_DisplayInfo" 
+            DependsOnTargets="_Error_Remove_Image_DebugLog">
+        <Message Text="Removing VM image ..." />
+    </Target>
+    
+    <Target Name="_Error_Remove_Image_DebugLog" 
+            Condition="$(ShouldDisplayDebugLog)">
+        <Message Text="Project directory structure:" />
+        <Message Text="The workspace is located at:                                      $(DirWorkspace)" />
+        <Message Text="The directory containing the build output is located at:          $(DirBuild)" />
+        <Message Text="The directory containing the temporary build files is located at: $(DirBuildTemp)" />
+        <Message Text="The directory containing the installation scripts is located at:  $(DirScripts)" />
+        <Message Text=" " />
+        
+        <Message Text="Jenkins master configuration file is located at:          $(FileJenkinsMasterConfig)" />
+        <Message Text=" " />
+        
+        <Message Text="Powershell command line executable is located at:         $(ToolsExternalPowershellPath)" />
+        <Message Text=" " />
+    </Target>
+    
+    <Target Name="_Error_Remove_Image_Execute" >
+        <!-- Get the image name -->
+        <XmlPeek XmlInputPath="$(FileJenkinsConfig)"
+                 Query="//configuration/service/image/@name" >
+            <Output TaskParameter="Result" ItemName="ImageNameGroup" />
+        </XmlPeek>
+        <CreateProperty Value="%(ImageNameGroup.Identity)">
+            <Output TaskParameter="Value" PropertyName="ImageName" />
+        </CreateProperty>
+        <Message Text="Removing image: $(ImageName)" />
+    
+        <!-- Make sure the whole thing stops if something goes wrong -->
+        <CreateProperty Value="$ErrorActionPreference = &#39;Stop&#39; ">
+            <Output TaskParameter="Value" PropertyName="CommandErrorActionPreference" />
+        </CreateProperty>
+        
+        <!-- Import Azure -->
+        <CreateProperty Value="Import-Module Azure">
+            <Output TaskParameter="Value" PropertyName="CommandImportAzure" />
+        </CreateProperty>
+        
+        <!-- Dot source the azure.ps1 script. -->
+        <CreateProperty Value=". &#39;$(DirScriptsAzure)\azure.ps1&#39;">
+            <Output TaskParameter="Value" PropertyName="CommandLoadAzureScript" />
+        </CreateProperty>
+        
+        <!-- Remove the image -->
+        <CreateProperty Value="Remove-AzureSysPreppedVMImage -imageName &#39;$(ImageName)&#39;">
+            <Output TaskParameter="Value" PropertyName="CommandRemoveImage" />
+        </CreateProperty>
+        
+        <CreateProperty Value="$(CommandErrorActionPreference) &#059; $(CommandImportAzure) &#059; $(CommandLoadAzureScript) &#059; $(CommandRemoveImage)">
+            <Output TaskParameter="Value" PropertyName="CommandRemove" />
+        </CreateProperty>
+        <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandRemove) &quot;" />
+    </Target>
+ </Project>
