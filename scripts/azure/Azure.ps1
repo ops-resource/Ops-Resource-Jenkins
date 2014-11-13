@@ -58,10 +58,22 @@ function Copy-ItemToRemoteMachine
     # Open remote file
     try
     {
-        Invoke-Command -Session $Session -ScriptBlock {
-            Param($remFile)
-            [IO.FileStream]$filestream = [IO.File]::OpenWrite( $remFile )
-        } -ArgumentList $remotePath
+        Invoke-Command `
+            -Session $Session `
+            -ScriptBlock {
+                param(
+                    $remFile
+                )
+                
+                $dir = Split-Path -Parent $remFile
+                if (-not (Test-Path $dir))
+                {
+                    New-Item -Path $dir -ItemType Directory
+                }
+
+                [IO.FileStream]$filestream = [IO.File]::OpenWrite( $remFile )
+            } `
+            -ArgumentList $remotePath
         Write-Output "Opened remote file for writing"
     }
     catch
@@ -210,6 +222,12 @@ function Copy-ItemFromRemoteMachine
     # Open local file
     try
     {
+        $localDir = Split-Path -Parent $localPath
+        if (-not (Test-Path))
+        {
+            New-Item -Path $localDir -ItemType Directory | Out-Null
+        }
+
         [IO.FileStream]$filestream = [IO.File]::OpenWrite( $localPath )
         Write-Output "Opened local file for writing"
     }
@@ -507,7 +525,7 @@ function Copy-AzureFilesToVM
     param(
         [System.Management.Automation.Runspaces.PSSession] $session,
         [string] $remoteDirectory = "c:\installers",
-        [string[]] $filesToCopy
+        [string] $localDirectory
     )
 
     # Stop everything if there are errors
@@ -520,27 +538,16 @@ function Copy-AzureFilesToVM
             ErrorAction = "Stop"
         }
 
-    # Create the installer directory on the virtual machine
-    Invoke-Command `
-        -Session $session `
-        -ArgumentList @( $remoteDirectory ) `
-        -ScriptBlock {
-            param(
-                [string] $dir
-            )
-        
-            if (-not (Test-Path $dir))
-            {
-                New-Item -Path $dir -ItemType Directory
-            }
-        } `
-         @commonParameterSwitches
+    $filesToCopy = Get-ChildItem -Path $localDirectory -Recurse -Force @commonParameterSwitches | 
+        Where-Object { -not $_.PsIsContainer } |
+        Select-Object -ExpandProperty FullName
 
     # Push binaries to the new VM
     Write-Verbose "Copying files to virtual machine: $filesToCopy"
     foreach($fileToCopy in $filesToCopy)
     {
-        $remotePath = Join-Path $remoteDirectory (Split-Path -Leaf $fileToCopy)
+        $relativePath = $fileToCopy.SubString($localDirectory.Length)
+        $remotePath = Join-Path $remoteDirectory $relativePath
 
         Write-Verbose "Copying $fileToCopy to $remotePath"
         Copy-ItemToRemoteMachine -localPath $fileToCopy -remotePath $remotePath -Session $session @commonParameterSwitches

@@ -124,6 +124,9 @@ Write-Verbose "imageLabel: $imageLabel"
 $logDir = $config.output.logpath
 Write-Verbose "logDir: $logDir"
 
+$remoteInstallerDirectory = 'c:\installers'
+$remoteLogDirectory = "c:\logs"
+
 # Set the storage account for the selected subscription
 Set-AzureSubscription -SubscriptionName $subscriptionName -CurrentStorageAccount $storageAccount @commonParameterSwitches
 
@@ -157,11 +160,7 @@ try
     Write-Verbose ("Get-PSSessionForAzureVM complete - VM state: " + $vm.Status)
     
     # Create the installer directory on the virtual machine
-    $filesToCopy = Get-ChildItem -Path $installationDirectory -Recurse -Force @commonParameterSwitches | 
-        Where-Object { -not $_.PsIsContainer } |
-        Select-Object -ExpandProperty FullName
-    $remoteInstallerDirectory = 'c:\installers'
-    Copy-AzureFilesToVM -session $session -remoteDirectory $remoteInstallerDirectory -filesToCopy $filesToCopy
+    Copy-AzureFilesToVM -session $session -remoteDirectory $remoteInstallerDirectory -localDirectory $installationDirectory
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Copy-AzureFilesToVM complete - VM state: " + $vm.Status)
@@ -169,20 +168,21 @@ try
     # Execute the remote installation scripts
     Invoke-Command `
         -Session $session `
-        -ArgumentList @( (Join-Path $remoteInstallerDirectory (Split-Path -Leaf $installationScript)) ) `
+        -ArgumentList @( (Join-Path $remoteInstallerDirectory (Split-Path -Leaf $installationScript)), $remoteInstallerDirectory, $remoteLogDirectory ) `
         -ScriptBlock {
             param(
-                [string] $installationScript
+                [string] $installationScript,
+                [string] $installationDirectory,
+                [string] $logDirectory
             )
         
-            & $installationScript
+            & $installationScript -installationDirectory $installationDirectory -logDirectory $logDirectory
         } `
          @commonParameterSwitches
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Execute installation script complete - VM state: " + $vm.Status)
 
-    $remoteLogDirectory = "c:\logs"
     Copy-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
     Write-Verbose "Copied log files from VM"
 
