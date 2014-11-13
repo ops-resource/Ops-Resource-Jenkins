@@ -21,7 +21,6 @@
         <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
         <DirBuildTempSetup Condition=" '$(DirBuildTempSetup)' == '' ">$(DirBuildTemp)\setup\master</DirBuildTempSetup>
-        <DirBuildTempSetupInstallers Condition=" '$(DirBuildTempSetupInstallers)' == '' ">$(DirBuildTempSetup)\installers</DirBuildTempSetupInstallers>
        
         <DirConfig Condition=" '$(DirConfig)' == '' ">$(DirWorkspace)\config</DirConfig>
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
@@ -104,12 +103,10 @@
                  Condition="!Exists('$(DirBuildTemp)')" />
         <MakeDir Directories="$(DirBuildTempSetup)" 
                  Condition="!Exists('$(DirBuildTempSetup)')" />
-        <MakeDir Directories="$(DirBuildTempSetupInstallers)" 
-                 Condition="!Exists('$(DirBuildTempSetupInstallers)')" />
         
         <!-- Download all required installers and ZIP archives -->
         <ItemGroup>
-            <SetupFiles Include="$(DirScriptsMaster)\Remote\**\*.ps1" />
+            <SetupFiles Include="$(DirScriptsMaster)\Remote\**\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(SetupFiles)"
               DestinationFolder="$(DirBuildTempSetup)" />
