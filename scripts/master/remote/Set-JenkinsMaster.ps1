@@ -16,10 +16,29 @@
 [CmdletBinding()]
 param()
 
-$dir = "c:\temp"
-if (-not (Test-Path $dir))
-{
-    New-Item -Path $dir -ItemType Directory
-}
+# The directory that contains all the installation files
+$installationDirectory = $PSScriptRoot
 
-Set-Content -Value "This is a test" -Path (Join-Path $dir "myfile.txt")
+# Download chef client. Note that this is obviously hard-coded but for now it will work. Later on we'll make this a configuration option
+$chefClientInstallFile = "chef-windows-11.16.4-1.windows.msi"
+$chefClientDownloadUrl = "https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/x86_64/" + $chefClientInstallFile
+$chefClientInstall = Join-Path $installationDirectory $chefClientInstallFile
+Invoke-WebRequest -Uri $chefClientDownloadUrl -OutFile $chefClientInstall
+
+# Install the chef client
+Unblock-File -Path $chefClientInstall
+
+
+& msiexec.exe /i "$chefClientInstall" /Lime! "$chefInstallLogFile" /qn
+try 
+{
+    # Execute the chef client as: chef-client -z -o $cookbookname
+
+    # Wait for chef to complete
+    
+}
+finally
+{
+    # delete chef from the machine
+    & msiexec.exe /x "$chefClientInstall" /Lime! "$chefUninstallLogFile" /qn
+}
