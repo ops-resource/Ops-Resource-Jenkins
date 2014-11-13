@@ -14,7 +14,11 @@
     Set-JenkinsMaster
 #>
 [CmdletBinding()]
-param()
+param(
+    [string] $installationDirectory = "c:\installers",
+    [string] $logDirectory          = "c:\logs",
+    [string] $cookbookName          = "jenkinsmaster"
+)
 
 # The directory that contains all the installation files
 $installationDirectory = $PSScriptRoot
@@ -28,17 +32,35 @@ Invoke-WebRequest -Uri $chefClientDownloadUrl -OutFile $chefClientInstall
 # Install the chef client
 Unblock-File -Path $chefClientInstall
 
-
+$chefInstallLogFile = Join-Path $logDirectory "chef.install.log"
 & msiexec.exe /i "$chefClientInstall" /Lime! "$chefInstallLogFile" /qn
 try 
 {
-    # Execute the chef client as: chef-client -z -o $cookbookname
+    # Set the path for the cookbooks
+    $chefConfigDir = Join-Path $env:UserProfile ".chef"
+    if (-not (Test-Path $chefConfigDir))
+    {
+        Write-Output "Creating the chef configuration directory ..."
+        New-Item -Path $chefConfigDir -ItemType Directory | Out-Null
+    }
 
-    # Wait for chef to complete
-    
+    $chefConfig = Join-Path $chefConfigDir 'knife.rb'
+    if (-not (Test-Path $chefConfig))
+    {
+        Write-Output "Creating the chef configuration file"
+        Set-Content -Path $chefConfig -Value ('cookbook_path ["' + $installationDirectory + '/cookbooks"]')
+
+        # Make a copy of the config for debugging purposes
+        Copy-Item $chefConfig $logDirectory
+    }
+
+    # Execute the chef client as: chef-client -z -o $cookbookname
+    $chefClient = "c:\opscode\chef\bin\chef-client.bat"
+    & $chefClient -z -o $cookbookName
 }
 finally
 {
     # delete chef from the machine
+    $chefUninstallLogFile = Join-Path $logDirectory "chef.uninstall.log"
     & msiexec.exe /x "$chefClientInstall" /Lime! "$chefUninstallLogFile" /qn
 }
