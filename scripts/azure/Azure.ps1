@@ -122,6 +122,166 @@ function Copy-ItemToRemoteMachine
     }
 }
 
+function Read-FromRemoteStream
+{
+    param(
+        [System.Management.Automation.Runspaces.PSSession] $session,
+        [int] $chunkSize
+    )
+
+    try 
+    {
+        $data = Invoke-Command `
+            -Session $Session `
+            -ScriptBlock {
+                Param(
+                    $size
+                )
+
+                [byte[]]$contentchunk = New-Object byte[] $size
+                $bytesread = $filestream.Read( $contentchunk, 0, $size ))
+
+                $result = New-Object PSObject
+                Add-Member -InputObject $result -MemberType NoteProperty -Name BytesRead -Value $BytesRead
+                Add-Member -InputObject $result -MemberType NoteProperty -Name Chunk -Value $contentchunk
+
+                return result
+            } `
+            -ArgumentList $chunkSize
+
+        return $data
+    }
+    catch 
+    {
+        Write-Error "Could not copy $fileName to $($Connection.Name) because:" $_.Exception.ToString()
+        return -1
+    }
+    finally
+    {
+
+    }
+}
+
+<#
+    .SYNOPSIS
+ 
+    Copies a file from the given remote path on the machine that the session is connected to.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Copy-ItemFromRemoteMachine function copies a remote file to the given local path on the machine that the session is connected to.
+ 
+ 
+    .PARAMETER remotePath
+ 
+    The full file path from which the local file should be copied
+
+
+    .PARAMETER localPath
+ 
+    The full path of the file to which the file should be copied.
+
+  
+    .PARAMETER session
+ 
+    The PSSession that provides the connection between the local machine and the remote machine.
+ 
+ 
+    .EXAMPLE
+ 
+    Copy-ItemFromRemoteMachine -remotePath 'c:\remote\myfile.txt' -localPath 'c:\temp\myfile.txt' -session $session
+#>
+function Copy-ItemFromRemoteMachine
+{
+    [CmdletBinding()]
+    param(
+        [string] $remotePath,
+        [string] $localPath,
+        [System.Management.Automation.Runspaces.PSSession] $session
+    )
+
+    # Use .NET file handling for speed
+    $content = [Io.File]::ReadAllBytes( $localPath )
+    $contentsizeMB = $content.Count / 1MB + 1MB
+
+    Write-Output "Copying $fileName from $localPath to $remotePath on $session.Name ..."
+
+    # Open local file
+    try
+    {
+        [IO.FileStream]$filestream = [IO.File]::OpenWrite( $localPath )
+        Write-Output "Opened local file for writing"
+    }
+    catch
+    {
+        Write-Error "Could not open local file $localPath because:" $_.Exception.ToString()
+        Return $false
+    }
+
+    # Open remote file
+    try
+    {
+        Invoke-Command -Session $Session -ScriptBlock {
+            Param($remFile)
+            [IO.FileStream]$filestream = [IO.File]::OpenRead( $remFile )
+        } -ArgumentList $remotePath
+        Write-Output "Opened remote file for reading"
+    }
+    catch
+    {
+        Write-Error "Could not open remote file $remotePath because:" $_.Exception.ToString()
+        Return $false
+    }
+
+    # Copy file in chunks
+    $chunksize = 1MB
+    $data = $null
+    while (($data = Read-FromRemoteStream $session $chunksize ).BytesRead -ne 0)
+    {
+        try
+        {
+            $percent = $filestream.Position / $filestream.Length
+            Write-Output ("Copying {0}, {1:P2} complete, receiving {2} bytes" -f $fileName, $percent, $bytesread)
+            $fileStream.Write( $data.Chunk, 0, $data.BytesRead)
+        }
+        catch
+        {
+            Write-Error "Could not copy $fileName from $($Connection.Name) because:" $_.Exception.ToString()
+            return $false
+        }
+        finally
+        {
+        }
+    }
+
+    # Close local file
+    try
+    {
+        $filestream.Close()
+        Write-Output "Closed local file, copy complete"
+    }
+    catch
+    {
+        Write-Error "Could not close local file $localPath because:" $_.Exception.ToString()
+        Return $false
+    }
+
+    # Close remote file
+    try
+    {
+        Invoke-Command -Session $Session -ScriptBlock {
+            $filestream.Close()
+        }
+        Write-Output "Closed remote file, copy complete"
+    }
+    catch
+    {
+        Write-Error "Could not close remote file $remotePath because:" $_.Exception.ToString()
+        Return $false
+    }
+}
+
 <#
     .SYNOPSIS
  
@@ -319,7 +479,7 @@ function Get-PSSessionForAzureVM
  
     .DESCRIPTION
  
-    The Add-AzureFilesToVM function copies a set of files to a remote directory on a given Azure VM.
+    The Copy-AzureFilesToVM function copies a set of files to a remote directory on a given Azure VM.
  
  
     .PARAMETER session
@@ -339,10 +499,11 @@ function Get-PSSessionForAzureVM
  
     .EXAMPLE
  
-    Add-AzureFilesToVM -session $session -remoteDirectory 'c:\temp' -filesToCopy (Get-ChildItem c:\temp -recurse)
+    Copy-AzureFilesToVM -session $session -remoteDirectory 'c:\temp' -filesToCopy (Get-ChildItem c:\temp -recurse)
 #>
-function Add-AzureFilesToVM
+function Copy-AzureFilesToVM
 {
+    [CmdletBinding()]
     param(
         [System.Management.Automation.Runspaces.PSSession] $session,
         [string] $remoteDirectory = "c:\installers",
@@ -384,6 +545,146 @@ function Add-AzureFilesToVM
         Write-Verbose "Copying $fileToCopy to $remotePath"
         Copy-ItemToRemoteMachine -localPath $fileToCopy -remotePath $remotePath -Session $session @commonParameterSwitches
     }
+}
+
+<#
+    .SYNOPSIS
+ 
+    Copies a set of files from a remote directory on a given Azure VM.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Copy-AzureFilesFromVM function copies a set of files from a remote directory on a given Azure VM.
+ 
+ 
+    .PARAMETER session
+ 
+    The PSSession that provides the connection between the local machine and the remote machine.
+ 
+ 
+    .PARAMETER remoteDirectory
+ 
+    The full path to the remote directory from which the files should be copied. Defaults to 'c:\logs'
+ 
+ 
+    .PARAMETER localDirectory
+ 
+    The full path to the local directory into which the files should be copied.
+ 
+ 
+    .EXAMPLE
+ 
+    Copy-AzureFilesToVM -session $session -remoteDirectory 'c:\temp' -localDirectory 'c:\temp'
+#>
+function Copy-AzureFilesFromVM
+{
+    [CmdletBinding()]
+    param(
+        [System.Management.Automation.Runspaces.PSSession] $session,
+        [string] $remoteDirectory = "c:\logs",
+        [string] $localDirectory
+    )
+
+    # Stop everything if there are errors
+    $ErrorActionPreference = 'Stop'
+
+    $commonParameterSwitches =
+        @{
+            Verbose = $PSBoundParameters.ContainsKey('Verbose');
+            Debug = $PSBoundParameters.ContainsKey('Debug');
+            ErrorAction = "Stop"
+        }
+
+    # Create the directory on the local machine
+    if (-not (Test-Path $localDirectory))
+    {
+        New-Item -Path $localDirectory -ItemType Directory
+    }
+
+    # Create the installer directory on the virtual machine
+    $remoteFiles = Invoke-Command `
+        -Session $session `
+        -ArgumentList @( $remoteDirectory ) `
+        -ScriptBlock {
+            param(
+                [string] $dir
+            )
+        
+            return Get-ChildItem -Recurse -Path $dir
+        } `
+         @commonParameterSwitches
+
+    # Push binaries to the new VM
+    Write-Verbose "Copying files from the virtual machine"
+    foreach($fileToCopy in $remoteFiles)
+    {
+        $file = $fileToCopy.FullName
+        $localPath = Join-Path $localDirectory (Split-Path -Leaf $file)
+
+        Write-Verbose "Copying $fileToCopy to $remotePath"
+        Copy-ItemFromRemoteMachine -localPath $localPath -remotePath $file -Session $session @commonParameterSwitches
+    }
+}
+
+<#
+    .SYNOPSIS
+ 
+    Removes a directory on the given Azure VM.
+ 
+ 
+    .DESCRIPTION
+ 
+    The Remove-AzureFilesFromVM function removes a directory on the given Azure VM.
+ 
+ 
+    .PARAMETER session
+ 
+    The PSSession that provides the connection between the local machine and the remote machine.
+ 
+ 
+    .PARAMETER remoteDirectory
+ 
+    The full path to the remote directory that should be removed
+ 
+ 
+    .EXAMPLE
+ 
+    Remove-AzureFilesFromVM -session $session -remoteDirectory 'c:\temp'
+#>
+function Remove-AzureFilesFromVM
+{
+    [CmdletBinding()]
+    param(
+        [System.Management.Automation.Runspaces.PSSession] $session,
+        [string] $remoteDirectory = "c:\logs",
+    )
+
+    # Stop everything if there are errors
+    $ErrorActionPreference = 'Stop'
+
+    $commonParameterSwitches =
+        @{
+            Verbose = $PSBoundParameters.ContainsKey('Verbose');
+            Debug = $PSBoundParameters.ContainsKey('Debug');
+            ErrorAction = "Stop"
+        }
+
+    # Create the installer directory on the virtual machine
+    Invoke-Command `
+        -Session $session `
+        -ArgumentList @( $remoteDirectory ) `
+        -ScriptBlock {
+            param(
+                [string] $dir
+            )
+        
+            if (Test-Path $dir)
+            {
+                Remove-Item -Path $dir -Force -Recurse
+            }
+        } `
+         @commonParameterSwitches
 }
 
 <#
@@ -452,7 +753,7 @@ function New-AzureSyspreppedVMImage
             ErrorAction = "Stop"
         }
 
-    $cmd = 'Write-Verbose "Executing $sysPrepScript on VM"; & c:\Windows\system32\sysprep\sysprep.exe /oobe /generalize /shutdown'
+    $cmd = 'Write-Output "Executing $sysPrepScript on VM"; & c:\Windows\system32\sysprep\sysprep.exe /oobe /generalize /shutdown'
     $tempDir = Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())
     $sysprepCmd = Join-Path $tempDir 'sysprep.ps1'
     

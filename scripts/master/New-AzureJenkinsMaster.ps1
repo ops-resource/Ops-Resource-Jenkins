@@ -121,6 +121,9 @@ Write-Verbose "imageName: $imageName"
 $imageLabel = $config.service.image.label
 Write-Verbose "imageLabel: $imageLabel"
 
+$logDir = $config.output.logpath
+Write-Verbose "logDir: $logDir"
+
 # Set the storage account for the selected subscription
 Set-AzureSubscription -SubscriptionName $subscriptionName -CurrentStorageAccount $storageAccount @commonParameterSwitches
 
@@ -157,16 +160,16 @@ try
     $filesToCopy = Get-ChildItem -Path $installationDirectory -Recurse -Force @commonParameterSwitches | 
         Where-Object { -not $_.PsIsContainer } |
         Select-Object -ExpandProperty FullName
-    $remoteDirectory = 'c:\installers'
-    Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy $filesToCopy
+    $remoteInstallerDirectory = 'c:\installers'
+    Copy-AzureFilesToVM -session $session -remoteDirectory $remoteInstallerDirectory -filesToCopy $filesToCopy
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
-    Write-Verbose ("Add-AzureFilesToVM complete - VM state: " + $vm.Status)
+    Write-Verbose ("Copy-AzureFilesToVM complete - VM state: " + $vm.Status)
 
     # Execute the remote installation scripts
     Invoke-Command `
         -Session $session `
-        -ArgumentList @( (Join-Path $remoteDirectory (Split-Path -Leaf $installationScript)) ) `
+        -ArgumentList @( (Join-Path $remoteInstallerDirectory (Split-Path -Leaf $installationScript)) ) `
         -ScriptBlock {
             param(
                 [string] $installationScript
@@ -178,6 +181,13 @@ try
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Execute installation script complete - VM state: " + $vm.Status)
+
+    $remoteLogDirectory = "c:\logs"
+    Copy-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
+    Write-Verbose "Copied log files from VM"
+
+    Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteInstallerDirectory
+    Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory
 
     New-AzureSyspreppedVMImage -session $session -resourceGroupName $resourceGroupName -vmName $vmName -imageName $imageName -imageLabel $imageLabel
 }
