@@ -1,3 +1,3 @@
-file "#{ENV['HOME']}/x.txt" do
-  content 'HELLO WORLD'
+file "c:/temp/myfile.txt" do
+  content 'This is a test'
 end
