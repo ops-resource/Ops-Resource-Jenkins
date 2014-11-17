@@ -151,7 +151,7 @@ function Read-FromRemoteStream
                 )
 
                 [byte[]]$contentchunk = New-Object byte[] $size
-                $bytesread = $filestream.Read( $contentchunk, 0, $size ))
+                $bytesread = $filestream.Read( $contentchunk, 0, $size )
 
                 $result = New-Object PSObject
                 Add-Member -InputObject $result -MemberType NoteProperty -Name BytesRead -Value $BytesRead
@@ -664,7 +664,7 @@ function Remove-AzureFilesFromVM
     [CmdletBinding()]
     param(
         [System.Management.Automation.Runspaces.PSSession] $session,
-        [string] $remoteDirectory = "c:\logs",
+        [string] $remoteDirectory = "c:\logs"
     )
 
     # Stop everything if there are errors
