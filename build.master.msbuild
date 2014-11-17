@@ -30,9 +30,11 @@
         
         <!-- Azure configuration -->
         <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
-        <AzureSslCertificateName Condition=" '$(AzureSslCertificateName)' == '' ">UNDEFINED</AzureSslCertificateName>
         <AzureServiceName Condition=" '$(AzureServiceName)' == '' ">UNDEFINED</AzureServiceName>
         <AzureStorageAccount Condition=" '$(AzureStorageAccount)' == '' ">UNDEFINED</AzureStorageAccount>
+
+        <AzureSslCertificateName Condition=" '$(AzureSslCertificateName)' == '' AND '$(AzureServiceName)' != 'UNDEFINED' ">$(AzureServiceName).cloudapp.net</AzureSslCertificateName>
+        <AzureSslCertificateName Condition=" '$(AzureSslCertificateName)' == '' ">UNDEFINED</AzureSslCertificateName>
         
         <!-- Virtual machine template configuration -->
         <TemplateAdminstratorName Condition=" '$(TemplateAdminstratorName)' == '' ">TheBigCheese</TemplateAdminstratorName>
