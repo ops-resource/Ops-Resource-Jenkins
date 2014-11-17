@@ -111,7 +111,7 @@
             <SetupFiles Include="$(DirScriptsMaster)\Remote\**\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(SetupFiles)"
-              DestinationFolder="$(DirBuildTempSetup)" />
+              DestinationFiles="@(SetupFiles->'$(DirBuildTempSetup)\%(RecursiveDir)%(Filename)%(Extension)')" />
     </Target>
 
     <Target Name="_Build_Master_Build"
