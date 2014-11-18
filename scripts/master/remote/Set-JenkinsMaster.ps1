@@ -27,7 +27,13 @@ function Install-Msi
         [string] $logFile
     )
 
-    Start-Process -FilePath "msiExec" -ArgumentList "/i $msiFile /Lime! $logFile /qn" -Wait
+    $p = Start-Process -FilePath "msiExec.exe" -ArgumentList "/i $msiFile /Lime! $logFile /qn" -PassThru
+    $p.WaitForExit()
+
+    if ($p.ExitCode -ne 0)
+    {
+        throw "Failed to install: $msiFile"
+    }
 }
 
 function Uninstall-Msi
@@ -37,7 +43,13 @@ function Uninstall-Msi
         [string] $logFile
     )
 
-    Start-Process -FilePath "msiExec" -ArgumentList "/x $msiFile /Lime! $logFile /qn" -Wait
+    $p = Start-Process -FilePath "msiExec.exe" -ArgumentList "/x $msiFile /Lime! $logFile /qn" -PassThru
+    $p.WaitForExit()
+
+    if ($p.ExitCode -ne 0)
+    {
+        throw "Failed to install: $msiFile"
+    }
 }
 
 # The directory that contains all the installation files
@@ -73,10 +85,7 @@ Write-Output "Installing chef from $chefClientInstall ..."
 $chefInstallLogFile = Join-Path $logDirectory "chef.install.log"
 Install-Msi -msiFile "$chefClientInstall" -logFile "$chefInstallLogFile"
 
-if ($LastExitCode -ne 0)
-{
-    throw 'Failed to install chef.'
-}
+# Add the ruby path to the $env:PATH for the current session.
 
 try 
 {
@@ -111,7 +120,10 @@ try
         throw "Chef client not found"
     }
 
+    Write-Output "Running chef-client ..."
     & $chefClient -z -o $cookbookName
+
+    Write-Output "Chef-client completed."
 }
 finally
 {
