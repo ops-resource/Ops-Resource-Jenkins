@@ -166,28 +166,35 @@ try
     Write-Verbose ("Copy-AzureFilesToVM complete - VM state: " + $vm.Status)
 
     # Execute the remote installation scripts
-    Invoke-Command `
-        -Session $session `
-        -ArgumentList @( (Join-Path $remoteInstallerDirectory (Split-Path -Leaf $installationScript)), $remoteInstallerDirectory, $remoteLogDirectory ) `
-        -ScriptBlock {
-            param(
-                [string] $installationScript,
-                [string] $installationDirectory,
-                [string] $logDirectory
-            )
+    try 
+    {
+        Invoke-Command `
+            -Session $session `
+            -ArgumentList @( (Join-Path $remoteInstallerDirectory (Split-Path -Leaf $installationScript)), $remoteInstallerDirectory, $remoteLogDirectory ) `
+            -ScriptBlock {
+                param(
+                    [string] $installationScript,
+                    [string] $installationDirectory,
+                    [string] $logDirectory
+                )
+            
+                & $installationScript -installationDirectory $installationDirectory -logDirectory $logDirectory
+            } `
+             @commonParameterSwitches
+    }
+    finally
+    {
+        Write-Verbose "Copying log files from VM ..."
+        Copy-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
         
-            & $installationScript -installationDirectory $installationDirectory -logDirectory $logDirectory
-        } `
-         @commonParameterSwitches
+        Write-Verbose "Copied log files from VM"
+
+        Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteInstallerDirectory
+        Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory
+    }
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Execute installation script complete - VM state: " + $vm.Status)
-
-    Copy-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
-    Write-Verbose "Copied log files from VM"
-
-    Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteInstallerDirectory
-    Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory
 
     New-AzureSyspreppedVMImage -session $session -resourceGroupName $resourceGroupName -vmName $vmName -imageName $imageName -imageLabel $imageLabel
 }
