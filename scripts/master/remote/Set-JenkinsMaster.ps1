@@ -85,8 +85,6 @@ Write-Output "Installing chef from $chefClientInstall ..."
 $chefInstallLogFile = Join-Path $logDirectory "chef.install.log"
 Install-Msi -msiFile "$chefClientInstall" -logFile "$chefInstallLogFile"
 
-# Add the ruby path to the $env:PATH for the current session.
-
 try 
 {
     # Set the path for the cookbooks
@@ -113,8 +111,17 @@ try
         throw "Chef install path not found."
     }
 
+    # Add the ruby path to the $env:PATH for the current session.
+    $embeddedRubyPath = "$opscodePath\chef\embedded\bin"
+    if (-not (Test-Path $embeddedRubyPath))
+    {
+        throw "Embedded ruby path not found."
+    }
+
+    $env:PATH += ";" + $embeddedRubyPath
+
     # Execute the chef client as: chef-client -z -o $cookbookname
-    $chefClient = "c:\opscode\chef\bin\chef-client.bat"
+    $chefClient = "$opscodePath\chef\bin\chef-client.bat"
     if (-not (Test-Path $chefClient))
     {
         throw "Chef client not found"
