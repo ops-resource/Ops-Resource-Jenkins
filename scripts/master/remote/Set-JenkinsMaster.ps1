@@ -129,6 +129,10 @@ try
 
     Write-Output "Running chef-client ..."
     & $chefClient -z -o $cookbookName
+    if (($LastExitCode -ne $null) -and ($LastExitCode -ne 0))
+    {
+        throw "Chef-client failed. Exit code: $LastExitCode"
+    }
 
     Write-Output "Chef-client completed."
 }
