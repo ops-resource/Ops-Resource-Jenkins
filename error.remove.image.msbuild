@@ -70,6 +70,11 @@
             <Output TaskParameter="Value" PropertyName="ImageName" />
         </CreateProperty>
         <Message Text="Removing image: $(ImageName)" />
+
+        <!-- Reset the error code to make sure powershell returns something sensible -->
+        <CreateProperty Value="$LastExitCode = 0 ">
+            <Output TaskParameter="Value" PropertyName="CommandResetLastExitCode" />
+        </CreateProperty>
     
         <!-- Make sure the whole thing stops if something goes wrong -->
         <CreateProperty Value="$ErrorActionPreference = &#39;Stop&#39; ">
@@ -85,13 +90,18 @@
         <CreateProperty Value=". &#39;$(DirScriptsAzure)\azure.ps1&#39;">
             <Output TaskParameter="Value" PropertyName="CommandLoadAzureScript" />
         </CreateProperty>
+
+        <!-- Get image -->
+        <CreateProperty Value=" $vmImage = Get-AzureVMImage -ImageName &#39;$(ImageName)&#39; -ErrorAction SilentlyContinue">
+            <Output TaskParameter="Value" PropertyName="CommandGetImage" />
+        </CreateProperty>
         
         <!-- Remove the image -->
-        <CreateProperty Value="Remove-AzureSysPreppedVMImage -imageName &#39;$(ImageName)&#39;">
+        <CreateProperty Value="if ($vmImage -eq $null) { Write-Output &#39;No image found. &#39; } else { Write-Output &#39;Found an image with name: $(ImageName). Removing ...&#39; &#059; Remove-AzureSysPreppedVMImage -imageName &#39;$(ImageName)&#39; }">
             <Output TaskParameter="Value" PropertyName="CommandRemoveImage" />
         </CreateProperty>
         
-        <CreateProperty Value="$(CommandErrorActionPreference) &#059; $(CommandImportAzure) &#059; $(CommandLoadAzureScript) &#059; $(CommandRemoveImage)">
+        <CreateProperty Value="$(CommandResetLastExitCode) &#059; $(CommandErrorActionPreference) &#059; $(CommandImportAzure) &#059; $(CommandLoadAzureScript) &#059; $(CommandGetImage) &#059; $(CommandRemoveImage)">
             <Output TaskParameter="Value" PropertyName="CommandRemove" />
         </CreateProperty>
         <Exec Command="&quot;$(ToolsExternalPowershellPath)\powershell.exe&quot; -NonInteractive -NoProfile -ExecutionPolicy Bypass -Command &quot; $(CommandRemove) &quot;" />
