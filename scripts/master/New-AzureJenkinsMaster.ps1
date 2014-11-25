@@ -203,7 +203,7 @@ finally
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     if ($vm -ne $null)
     {
-        #Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
+        Remove-AzureVM -ServiceName $resourceGroupName -Name $vmName -DeleteVHD @commonParameterSwitches
     }
 }
 
