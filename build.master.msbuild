@@ -20,9 +20,11 @@
         <DirBuild Condition=" '$(DirBuild)' == '' ">$(DirWorkspace)\build</DirBuild>
         <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
-        <DirBuildTempSetup Condition=" '$(DirBuildTempSetup)' == '' ">$(DirBuildTemp)\setup\master</DirBuildTempSetup>
+        <DirBuildTempSetup>$(DirBuildTemp)\setup\master</DirBuildTempSetup>
+        <DirBuildTempSetupCookbooks>$(DirBuildTempSetup)\cookbooks\jenkinsmaster</DirBuildTempSetupCookbooks>
        
         <DirConfig Condition=" '$(DirConfig)' == '' ">$(DirWorkspace)\config</DirConfig>
+        <DirChefCookbooks Condition=" '$(DirChefCookbooks)' == '' ">$(DirWorkspace)\cookbooks</DirChefCookbooks>
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
         <DirScriptsAzure Condition=" '$(DirScriptsAzure)' == '' ">$(DirScripts)\azure</DirScriptsAzure>
         <DirScriptsMaster Condition=" '$(DirScriptsMaster)' == '' ">$(DirScripts)\master</DirScriptsMaster>
@@ -112,6 +114,12 @@
         </ItemGroup>
         <Copy SourceFiles="@(SetupFiles)"
               DestinationFiles="@(SetupFiles->'$(DirBuildTempSetup)\%(RecursiveDir)%(Filename)%(Extension)')" />
+
+        <ItemGroup>
+            <CookBookFiles Include="$(DirChefCookbooks)\jenkinsmaster\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(CookBookFiles)"
+              DestinationFiles="@(CookBookFiles->'$(DirBuildTempSetupCookbooks)\%(RecursiveDir)%(Filename)%(Extension)')" />
     </Target>
 
     <Target Name="_Build_Master_Build"
