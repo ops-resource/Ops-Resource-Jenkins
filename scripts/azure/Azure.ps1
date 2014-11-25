@@ -157,7 +157,7 @@ function Read-FromRemoteStream
                 Add-Member -InputObject $result -MemberType NoteProperty -Name BytesRead -Value $BytesRead
                 Add-Member -InputObject $result -MemberType NoteProperty -Name Chunk -Value $contentchunk
 
-                return result
+                return $result
             } `
             -ArgumentList $chunkSize
 
@@ -213,17 +213,13 @@ function Copy-ItemFromRemoteMachine
         [System.Management.Automation.Runspaces.PSSession] $session
     )
 
-    # Use .NET file handling for speed
-    $content = [Io.File]::ReadAllBytes( $localPath )
-    $contentsizeMB = $content.Count / 1MB + 1MB
-
-    Write-Output "Copying $fileName from $localPath to $remotePath on $session.Name ..."
+    Write-Output "Copying $fileName from $localPath to $remotePath on $($session.Name) ..."
 
     # Open local file
     try
     {
         $localDir = Split-Path -Parent $localPath
-        if (-not (Test-Path))
+        if (-not (Test-Path $localDir))
         {
             New-Item -Path $localDir -ItemType Directory | Out-Null
         }
@@ -259,8 +255,7 @@ function Copy-ItemFromRemoteMachine
     {
         try
         {
-            $percent = $filestream.Position / $filestream.Length
-            Write-Output ("Copying {0}, {1:P2} complete, receiving {2} bytes" -f $fileName, $percent, $bytesread)
+            Write-Output ("Copying {0}, receiving {1} bytes" -f $fileName, $data.BytesRead)
             $fileStream.Write( $data.Chunk, 0, $data.BytesRead)
         }
         catch
@@ -629,7 +624,7 @@ function Copy-AzureFilesFromVM
         $file = $fileToCopy.FullName
         $localPath = Join-Path $localDirectory (Split-Path -Leaf $file)
 
-        Write-Verbose "Copying $fileToCopy to $remotePath"
+        Write-Verbose "Copying $fileToCopy to $localPath"
         Copy-ItemFromRemoteMachine -localPath $localPath -remotePath $file -Session $session @commonParameterSwitches
     }
 }
