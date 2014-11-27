@@ -45,7 +45,8 @@
 [CmdletBinding(SupportsShouldProcess = $True)]
 param(
     [string] $configFile = $(throw "Please provide a configuration file path."),
-    [string] $azureScriptDirectory = $PSScriptRoot
+    [string] $azureScriptDirectory = $PSScriptRoot,
+    [string] $testDirectory = $PSScriptRoot
 )
 
 # Stop everything if there are errors
@@ -140,14 +141,13 @@ try
         -adminName $adminName `
         -adminPassword $adminPassword
 
-    $verificationScript = Join-Path $PSScriptRoot 'Test-AzureJenkinsMaster.ps1'
     $remoteDirectory = 'c:\verification'
-    Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy @( $verificationScript )
+    Copy-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -localDirectory $testDirectory
 
     # Verify that everything is there
     $testResult = Invoke-Command `
         -Session $session `
-        -ArgumentList @( (Join-Path $remoteDirectory (Split-Path -Leaf $verificationScript)) ) `
+        -ArgumentList @( (Join-Path $remoteDirectory 'Test-AzureJenkinsMaster.ps1') ) `
         -ScriptBlock {
             param(
                 [string] $verificationScript

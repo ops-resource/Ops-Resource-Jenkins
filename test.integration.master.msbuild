@@ -23,6 +23,7 @@
         <DirBuild Condition=" '$(DirBuild)' == '' ">$(DirWorkspace)\build</DirBuild>
         <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
+        <DirBuildTempTest>$(DirBuildTemp)\test</DirBuildTempTest>
 
         <DirConfig Condition=" '$(DirConfig)' == '' ">$(DirWorkspace)\config</DirConfig>
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
@@ -58,6 +59,7 @@
             
     <Target Name="Test_Integration_Master_Run" 
             DependsOnTargets="_Test_Integration_Master_DisplayInfo">
+        <CallTarget Targets="_Test_Integration_Master_GatherTestFiles" />
         <CallTarget Targets="_Test_Integration_Master_Execute" />
     </Target>
     
@@ -86,6 +88,22 @@
         <Message Text="Powershell command line executable is located at:         $(ToolsExternalPowershellPath)" />
         <Message Text=" " />
     </Target>
+
+    <Target Name="_Test_Integration_Master_GatherTestFiles">
+        <MakeDir Directories="$(DirBuild)" 
+                 Condition="!Exists('$(DirBuild)')" />
+        <MakeDir Directories="$(DirBuildTemp)" 
+                 Condition="!Exists('$(DirBuildTemp)')" />
+        <MakeDir Directories="$(DirScriptsTestsMaster)" 
+                 Condition="!Exists('$(DirScriptsTestsMaster)')" />
+        
+        <!-- Download all required test files -->
+        <ItemGroup>
+            <TestFiles Include="$(DirScriptsTestsMaster)\Test-AzureJenkinsMaster.ps1" />
+        </ItemGroup>
+        <Copy SourceFiles="@(TestFiles)"
+              DestinationFiles="@(TestFiles->'$(DirScriptsTestsMaster)\%(RecursiveDir)%(Filename)%(Extension)')" />
+    </Target>
     
     <Target Name="_Test_Integration_Master_Execute"
             DependsOnTargets="nBuildKit_Shared_TemplateTokens_Initialize">
@@ -101,7 +119,7 @@
         </CreateProperty>
         
         <!-- Execute the tests and store the results. -->
-        <CreateProperty Value="&amp; &#39;$(FileJenkinsMasterTestScript)&#39; -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -Verbose">
+        <CreateProperty Value="&amp; &#39;$(FileJenkinsMasterTestScript)&#39; -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -testDirectory &#39;$(DirScriptsTestsMaster)&#39; -Verbose">
             <Output TaskParameter="Value" PropertyName="CommandInvokeTest" />
         </CreateProperty>
         
