@@ -768,7 +768,7 @@ function New-AzureSyspreppedVMImage
         }
         
         Set-Content -Value $cmd -Path $sysprepCmd
-        Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy @( $sysprepCmd )
+        Copy-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -localDirectory $tempDir
     }
     finally
     {
