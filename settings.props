@@ -216,19 +216,15 @@
             </Steps>
             <PreInvokeScripts></PreInvokeScripts>
             <PostInvokeScripts>
-                $(DirWorkspace)\build.master.msbuild;
+                
             </PostInvokeScripts>
         </BuildStepsToExecute>
-        <!--
         <BuildStepsToExecute Include="$(BuildTargetAnalyzeSource)">
             <Steps>
-                $(BuildStepsAnalyzeSourceCcm);
-                $(BuildStepsAnalyzeSourceSouceMonitor)
             </Steps>
             <PreInvokeScripts></PreInvokeScripts>
-            <PostInvokeScripts></PostInvokeScripts>
+            <PostInvokeScripts>$(DirWorkspace)\analyze.foodcritic.msbuild;</PostInvokeScripts>
         </BuildStepsToExecute>
-        -->
         <!--
         <BuildStepsToExecute Include="$(BuildTargetBuildBinaries)">
             <PreInvokeScripts></PreInvokeScripts>
@@ -238,9 +234,12 @@
         <BuildStepsToExecute Include="$(BuildTargetExecuteUnitTests)">
             <Steps>
             </Steps>
-            <PreInvokeScripts></PreInvokeScripts>
+            <PreInvokeScripts>
+                <!-- $(DirWorkspace)\test.unit.chefspec.msbuild; -->
+                <!-- $(DirWorkspace)\build.master.msbuild; -->
+            </PreInvokeScripts>
             <PostInvokeScripts>
-                $(DirWorkspace)\test.integration.master.msbuild
+                <!-- $(DirWorkspace)\test.integration.master.msbuild -->
             </PostInvokeScripts>
         </BuildStepsToExecute>
         <!--
