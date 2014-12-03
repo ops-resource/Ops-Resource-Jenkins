@@ -235,7 +235,7 @@
             <Steps>
             </Steps>
             <PreInvokeScripts>
-                <!-- $(DirWorkspace)\test.unit.chefspec.msbuild; -->
+                $(DirWorkspace)\test.unit.chefspec.msbuild;
                 <!-- $(DirWorkspace)\build.master.msbuild; -->
             </PreInvokeScripts>
             <PostInvokeScripts>
