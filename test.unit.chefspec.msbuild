@@ -57,6 +57,6 @@
     </Target>
 
     <Target Name="_Test_Unit_ChefSpec_Execute">
-        <Exec Command="$(ToolsExternalRSpec) --include &quot;$(DirChefCookbooks)\*\spec\*_spec.rb&quot; --format RspecJUnitFormatter --out &quot;$(DirBuildLogs)\chefspec.xml&quot;" />
+        <Exec Command="$(ToolsExternalRSpec) --format RspecJunitFormatter --out &quot;$(DirBuildLogs)\chefspec.xml&quot; --pattern &quot;$(DirChefCookbooks)/*/spec/*_spec.rb&quot;" />
     </Target>
  </Project>
