@@ -6,12 +6,12 @@
  
     .DESCRIPTION
  
-    The Set-JenkinsMaster script takes all the actions necessary to prepare a Windows machine for use as a Jenkins master
+    The Install-ApplicationsOnWindowsWithChef script takes all the actions necessary to prepare a Windows machine for use as a Jenkins master
  
  
     .EXAMPLE
  
-    Set-JenkinsMaster
+    Install-ApplicationsOnWindowsWithChef
 #>
 [CmdletBinding()]
 param(
@@ -64,6 +64,23 @@ if (-not (Test-Path $logDirectory))
 {
     New-Item -Path $logDirectory -ItemType Directory
 }
+
+
+# Install Chocolatey
+
+# Add chocolatey to the path
+# Install ruby
+# install ruby2.devkit
+# patch devkit config
+# rerun devkit install stuff
+
+# load gems
+# -chef
+# -chef-zero
+# -win32-process
+
+# Run chef-zero and push the cookbook to it
+
 
 # Download chef client. Note that this is obviously hard-coded but for now it will work. Later on we'll make this a configuration option
 Write-Output "Downloading chef installer ..."

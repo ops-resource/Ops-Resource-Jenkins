@@ -236,10 +236,10 @@
             </Steps>
             <PreInvokeScripts>
                 $(DirWorkspace)\test.unit.chefspec.msbuild;
-                <!-- $(DirWorkspace)\build.master.msbuild; -->
+                $(DirWorkspace)\build.master.msbuild;
             </PreInvokeScripts>
             <PostInvokeScripts>
-                <!-- $(DirWorkspace)\test.integration.master.msbuild -->
+                $(DirWorkspace)\test.integration.master.msbuild
             </PostInvokeScripts>
         </BuildStepsToExecute>
         <!--

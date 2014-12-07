@@ -6,12 +6,12 @@
  
     .DESCRIPTION
  
-    The Test-AzureJenkinsMaster script executes the tests that verify whether the current machine has all the tools installed to allow it to work as a Windows Jenkins master.
+    The Verify-ApplicationsOnWindows script executes the tests that verify whether the current machine has all the tools installed to allow it to work as a Windows Jenkins master.
  
  
     .EXAMPLE
  
-    Test-AzureJenkinsMaster
+    Verify-ApplicationsOnWindows
 #>
 [CmdletBinding()]
 param()

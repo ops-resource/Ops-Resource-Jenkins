@@ -6,7 +6,7 @@
  
     .DESCRIPTION
  
-    The New-AzureJenkinsMaster.Test script verifies that a given image can indeed be used to create a Windows machine that serves as a Jenkins master.
+    The Verify-AzureWindowsImage script verifies that a given image can indeed be used to create a Windows machine that serves as a Jenkins master.
  
  
     .PARAMETER configFile
@@ -40,7 +40,7 @@
  
     .EXAMPLE
  
-    New-AzureJenkinsMaster.Test -configFile 'c:\temp\azurejenkinsmaster.xml' -azureScriptDirectory 'c:\temp\source'
+    Verify-AzureWindowsImage -configFile 'c:\temp\azurejenkinsmaster.xml' -azureScriptDirectory 'c:\temp\source'
 #>
 [CmdletBinding(SupportsShouldProcess = $True)]
 param(
@@ -147,7 +147,7 @@ try
     # Verify that everything is there
     $testResult = Invoke-Command `
         -Session $session `
-        -ArgumentList @( (Join-Path $remoteDirectory 'Test-AzureJenkinsMaster.ps1') ) `
+        -ArgumentList @( (Join-Path $remoteDirectory 'Verify-ApplicationsOnWindows.ps1') ) `
         -ScriptBlock {
             param(
                 [string] $verificationScript

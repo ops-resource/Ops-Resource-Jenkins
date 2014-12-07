@@ -6,7 +6,7 @@
  
     .DESCRIPTION
  
-    The New-AzureJenkinsMaster script creates a new Azure VM image for a Windows machine that can serve as a Jenkins master.
+    The New-AzureWindowsImage script creates a new Azure VM image for a Windows machine that can serve as a Jenkins master.
  
  
     .PARAMETER configFile
@@ -40,7 +40,7 @@
  
     .EXAMPLE
  
-    New-AzureJenkinsMaster -configFile 'c:\temp\azurejenkinsmaster.xml' -azureScriptDirectory 'c:\temp\source'
+    New-AzureWindowsImage -configFile 'c:\temp\azurejenkinsmaster.xml' -azureScriptDirectory 'c:\temp\source'
 #>
 [CmdletBinding(SupportsShouldProcess = $True)]
 param(

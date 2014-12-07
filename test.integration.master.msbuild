@@ -42,7 +42,7 @@
         <!-- Files -->
         <FileSemanticVersion Condition=" '$(FileSemanticVersion)' == '' ">$(DirBuildTemp)\semantic_version.json</FileSemanticVersion>
         <FileJenkinsMasterConfig Condition=" '$(FileJenkinsMasterConfig)' == '' ">$(DirBuildTemp)\jenkinsmaster.xml</FileJenkinsMasterConfig>
-        <FileJenkinsMasterTestScript Condition=" '$(FileJenkinsMasterTestScript)' == '' ">$(DirScriptsTestsMaster)\New-AzureJenkinsMaster.Test.ps1</FileJenkinsMasterTestScript>
+        <FileJenkinsMasterTestScript Condition=" '$(FileJenkinsMasterTestScript)' == '' ">$(DirScriptsAzure)\Verify-AzureWindowsImage.ps1</FileJenkinsMasterTestScript>
         <FileErrorRemoveImage Condition=" '$(FileErrorRemoveImage)' == '' ">$(DirWorkspace)\error.remove.image.msbuild</FileErrorRemoveImage>
         
         <!-- Version number -->
@@ -94,15 +94,15 @@
                  Condition="!Exists('$(DirBuild)')" />
         <MakeDir Directories="$(DirBuildTemp)" 
                  Condition="!Exists('$(DirBuildTemp)')" />
-        <MakeDir Directories="$(DirScriptsTestsMaster)" 
-                 Condition="!Exists('$(DirScriptsTestsMaster)')" />
+        <MakeDir Directories="$(DirBuildTempTest)" 
+                 Condition="!Exists('$(DirBuildTempTest)')" />
         
         <!-- Download all required test files -->
         <ItemGroup>
-            <TestFiles Include="$(DirScriptsTestsMaster)\Test-AzureJenkinsMaster.ps1" />
+            <TestFiles Include="$(DirScriptsAzure)\Verify-ApplicationsOnWindows.ps1" />
         </ItemGroup>
         <Copy SourceFiles="@(TestFiles)"
-              DestinationFiles="@(TestFiles->'$(DirScriptsTestsMaster)\%(RecursiveDir)%(Filename)%(Extension)')" />
+              DestinationFiles="@(TestFiles->'$(DirBuildTempTest)\%(RecursiveDir)%(Filename)%(Extension)')" />
     </Target>
     
     <Target Name="_Test_Integration_Master_Execute"
@@ -119,7 +119,7 @@
         </CreateProperty>
         
         <!-- Execute the tests and store the results. -->
-        <CreateProperty Value="&amp; &#39;$(FileJenkinsMasterTestScript)&#39; -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -testDirectory &#39;$(DirScriptsTestsMaster)&#39; -Verbose">
+        <CreateProperty Value="&amp; &#39;$(FileJenkinsMasterTestScript)&#39; -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -testDirectory &#39;$(DirBuildTempTest)&#39; -Verbose">
             <Output TaskParameter="Value" PropertyName="CommandInvokeTest" />
         </CreateProperty>
         

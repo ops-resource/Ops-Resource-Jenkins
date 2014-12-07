@@ -27,7 +27,6 @@
         <DirChefCookbooks Condition=" '$(DirChefCookbooks)' == '' ">$(DirWorkspace)\cookbooks</DirChefCookbooks>
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
         <DirScriptsAzure Condition=" '$(DirScriptsAzure)' == '' ">$(DirScripts)\azure</DirScriptsAzure>
-        <DirScriptsMaster Condition=" '$(DirScriptsMaster)' == '' ">$(DirScripts)\master</DirScriptsMaster>
         <DirTemplates Condition=" '$(DirTemplates)' == '' ">$(DirWorkspace)\templates</DirTemplates>
         
         <!-- Azure configuration -->
@@ -49,8 +48,8 @@
         <FileSemanticVersion Condition=" '$(FileSemanticVersion)' == '' ">$(DirBuildTemp)\semantic_version.json</FileSemanticVersion>
         <FileJenkinsMasterConfigTemplate Condition=" '$(FileJenkinsMasterConfigTemplate)' == '' ">$(DirConfig)\jenkinsmaster.xml</FileJenkinsMasterConfigTemplate>
         <FileJenkinsMasterConfig Condition=" '$(FileJenkinsMasterConfig)' == '' ">$(DirBuildTemp)\jenkinsmaster.xml</FileJenkinsMasterConfig>
-        <FileJenkinsMasterScript Condition=" '$(FileJenkinsMasterScript)' == '' ">$(DirScriptsMaster)\New-AzureJenkinsMaster.ps1</FileJenkinsMasterScript>
-        <FileRemoteInstallerMain Condition=" '$(FileRemoteInstallerMain)' == '' ">$(DirBuildTempSetupInstallers)\Set-JenkinsMaster.ps1</FileRemoteInstallerMain>
+        <FileJenkinsMasterScript Condition=" '$(FileJenkinsMasterScript)' == '' ">$(DirScriptsAzure)\New-AzureWindowsImage.ps1</FileJenkinsMasterScript>
+        <FileRemoteInstallerMain Condition=" '$(FileRemoteInstallerMain)' == '' ">$(DirScriptsAzure)\Install-ApplicationsOnWindowsWithChef.ps1</FileRemoteInstallerMain>
         <FileErrorRemoveImage Condition=" '$(FileErrorRemoveImage)' == '' ">$(DirWorkspace)\error.remove.image.msbuild</FileErrorRemoveImage>
         
         <!-- Version number -->
@@ -110,7 +109,7 @@
         
         <!-- Download all required installers and ZIP archives -->
         <ItemGroup>
-            <SetupFiles Include="$(DirScriptsMaster)\Remote\**\*.*" />
+            <SetupFiles Include="$(FileRemoteInstallerMain)" />
         </ItemGroup>
         <Copy SourceFiles="@(SetupFiles)"
               DestinationFiles="@(SetupFiles->'$(DirBuildTempSetup)\%(RecursiveDir)%(Filename)%(Extension)')" />
