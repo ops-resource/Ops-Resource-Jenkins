@@ -24,11 +24,14 @@
         <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
         <DirBuildTempTest>$(DirBuildTemp)\test</DirBuildTempTest>
+        <DirBuildTempTestSpec>$(DirBuildTempTest)\spec</DirBuildTempTestSpec>
 
         <DirConfig Condition=" '$(DirConfig)' == '' ">$(DirWorkspace)\config</DirConfig>
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
         <DirScriptsAzure Condition=" '$(DirScriptsAzure)' == '' ">$(DirScripts)\azure</DirScriptsAzure>
-        <DirScriptsTestsMaster Condition=" '$(DirScriptsTestsMaster)' == '' ">$(DirScripts)\test.integration.master</DirScriptsTestsMaster>
+
+        <DirSpec Condition=" '$(DirSpec)' == '' ">$(DirWorkspace)\spec</DirSpec>
+        <DirSpecMaster Condition=" '$(DirSpecMaster)' == '' ">$(DirSpec)\jenkinsmaster</DirSpecMaster>
         
         <!-- Azure configuration -->
         <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
@@ -96,6 +99,8 @@
                  Condition="!Exists('$(DirBuildTemp)')" />
         <MakeDir Directories="$(DirBuildTempTest)" 
                  Condition="!Exists('$(DirBuildTempTest)')" />
+        <MakeDir Directories="$(DirBuildTempTestSpec)"
+                 Condition="!Exists('$(DirBuildTempTestSpec)')" />
         
         <!-- Download all required test files -->
         <ItemGroup>
@@ -103,6 +108,12 @@
         </ItemGroup>
         <Copy SourceFiles="@(TestFiles)"
               DestinationFiles="@(TestFiles->'$(DirBuildTempTest)\%(RecursiveDir)%(Filename)%(Extension)')" />
+
+        <ItemGroup>
+            <SpecFiles Include="$(DirSpecMaster)\**\*.*" />
+        </ItemGroup>
+        <Copy SourceFiles="@(SpecFiles)"
+              DestinationFiles="@(SpecFiles->'$(DirBuildTempTestSpec)\%(RecursiveDir)%(Filename)%(Extension)')" />
     </Target>
     
     <Target Name="_Test_Integration_Master_Execute"

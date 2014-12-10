@@ -113,6 +113,8 @@ Write-Verbose "imageName: $imageName"
 $imageLabel = $config.service.image.label
 Write-Verbose "imageLabel: $imageLabel"
 
+$remoteLogDirectory = "c:\logs"
+
 # Set the storage account for the selected subscription
 Set-AzureSubscription -SubscriptionName $subscriptionName -CurrentStorageAccount $storageAccount @commonParameterSwitches
 
@@ -147,31 +149,23 @@ try
     # Verify that everything is there
     $testResult = Invoke-Command `
         -Session $session `
-        -ArgumentList @( (Join-Path $remoteDirectory 'Verify-ApplicationsOnWindows.ps1') ) `
+        -ArgumentList @( (Join-Path $remoteDirectory 'Verify-ApplicationsOnWindows.ps1'), (Join-Path $remoteDirectory "spec"), $remoteLogDirectory ) `
         -ScriptBlock {
             param(
-                [string] $verificationScript
+                [string] $verificationScript,
+                [string] $testDirectory,
+                [string] $logDirectory
             )
         
-            $result = & $verificationScript
+            $result = & $verificationScript -testDirectory $testDirectory -logDirectory $logDirectory
             return $result
         } `
          @commonParameterSwitches
 
-    Write-Output "Logs:"
-    $logEntries = $testResult.Log
-    foreach($entry in $logEntries)
-    {
-        if ($entry.MessageType -eq "Info")
-        {
-            Write-Output "LOG: $($entry.DateTime) - $($entry.Message)"
-            continue
-        }
+    Write-Verbose "Copying log files from VM ..."
+    Copy-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
 
-        Write-Error "ERROR: $($entry.DateTime) - $($entry.Message)"
-    }
-
-    if (-not $testResult.HasPassed)
+    if ($testResult -ne 0)
     {
         throw "Test FAILED"
     }
