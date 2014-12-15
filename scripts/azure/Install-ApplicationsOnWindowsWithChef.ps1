@@ -20,8 +20,7 @@ param(
     [string] $cookbookName          = "jenkinsmaster"
 )
 
-# The directory that contains all the installation files
-$installationDirectory = $PSScriptRoot
+$ErrorActionPreference = "Stop"
 
 if (-not (Test-Path $installationDirectory))
 {
@@ -43,10 +42,11 @@ $env:ChocolateyInstall = "C:\ProgramData\chocolatey"
 
 # Install ruby
 Write-Output "Installing ruby via chocolatey ..."
-& choco install ruby -version 2.1.3.0
+& choco install ruby -version 2.0.0.57600
 
 # Patch PATH for ruby
-$env:PATH += ";C:\tools\ruby213\bin"
+$rubyPath = "C:\tools\ruby200"
+$env:PATH += ";$rubyPath\bin"
 
 # install ruby2.devkit
 Write-Output "Installing ruby2.devkit via chocolatey ..."
@@ -54,21 +54,82 @@ Write-Output "Installing ruby2.devkit via chocolatey ..."
 
 # patch devkit config
 Write-Output "Patching ruby devkit config ..."
-Add-Content -Path "C:\tools\DevKit2\config.yml"  -Value " - C:\tools\ruby213"
+Add-Content -Path "C:\tools\DevKit2\config.yml" -Value " - $rubyPath"
 
 # rerun devkit install stuff
 Write-Output "Updating ruby with DevKit ..."
-& ruby "C:\tools\DevKit2\dk.rb" install
+$currentPath = $pwd
+try 
+{
+    sl "C:\tools\DevKit2\"
+    & ruby "dk.rb" install
+}
+finally
+{
+    sl $currentPath
+}
 
-# load gems
-Write-Output "Installing win32-process gem ..."
-& gem install win32-process --version 0.7.4
+# patch the SSL certs
+# Based on: http://stackoverflow.com/a/16134586/539846
+$rubyCertDir = "c:\tools\rubycerts"
+if (-not (Test-Path $rubyCertDir))
+{
+    New-Item -Path $rubyCertDir -ItemType Directory | Out-Null
+}
 
-Write-Output "Installing win32-service gem ..."
-& gem install win32-service --version 0.8.6
+$rubyCertFile = Join-Path $rubyCertDir "cacert.pem"
+Invoke-WebRequest -Uri "http://curl.haxx.se/ca/cacert.pem" -OutFile $rubyCertFile -Verbose
+Unblock-File -Path $rubyCertFile
 
-Write-Output "Installing chef gem ..."
-& gem install chef --version 12.0.0
+# Permanently set the environment variable for the machine
+[Environment]::SetEnvironmentVariable("SSL_CERT_FILE", "$rubyCertFile", "Machine")
+
+# But also set it for the current process because environment variables aren't reloaded
+$env:SSL_CERT_FILE = $rubyCertFile
+
+Write-Output ("Environment variable SSL_CERT_FILE set to: " + $env:SSL_CERT_FILE)
+
+# Temporarily rename the rake binaries because one of the gems will try to install rake which will
+# lead to the whole process stopping while waiting for the user to approve that change. Hence we 
+# approve that change now by renaming the rake binaries
+Write-Output "Renaming rake binaries ..."
+Rename-Item -Path "$rubyPath\bin\rake" -NewName "rake-old" -Force
+Rename-Item -Path "$rubyPath\bin\rake.bat" -NewName "rake-old.bat" -Force
+
+# load gems.
+# Do this in a try..catch..finally so that we can continue even if there are errors because some of the gem installs 
+# raise warnings that Powershell considers to be fatal errors, e.g. the ffi-yajl gem produces C compiler warnings
+# that Powershell takes far too seriously. So we just supress the whole thing and we'll see if it works later.
+try
+{
+    $ErrorActionPreference = "SilentlyContinue"
+
+    Write-Output "Installing win32-process gem ..."
+    & gem install win32-process --version 0.7.4 --no-document --conservative --minimal-deps --verbose
+
+    Write-Output "Installing win32-nio gem ..."
+    & gem install win32-nio --version 0.1.3 --no-document --conservative --minimal-deps --verbose
+
+    Write-Output "Installing win32-service gem ..."
+    & gem install win32-service --version 0.8.6 --no-document --conservative --minimal-deps --verbose
+
+    Write-Output "Installing win32-eventlog gem ..."
+    & gem install win32-eventlog --version 0.6.2 --no-document --conservative --minimal-deps --verbose
+
+    Write-Output "Installing windows-pr gem ..."
+    & gem install windows-pr --version 1.2.4 --no-document --conservative --minimal-deps --verbose
+
+    Write-Output "Installing chef gem ..."
+    & gem install chef --version 12.0.1 --no-document --conservative --minimal-deps --verbose
+}
+catch 
+{
+    Write-Output ("Failed to install gems. Error was: " + $_.Exception.ToString())
+}
+finally
+{
+    $ErrorActionPreference = "Stop"
+}
 
 
 # Set the path for the cookbooks
@@ -90,9 +151,24 @@ if (-not (Test-Path $chefConfig))
 }
 
 Write-Output "Running chef-client ..."
-& chef-client -z -o $cookbookName
+try 
+{
+    & chef-client -z -o $cookbookName    
+}
+catch 
+{
+    Write-Output ("chef-client failed. Error was: " + $_.Exception.ToString())
+}
+
 if (($LastExitCode -ne $null) -and ($LastExitCode -ne 0))
 {
+    $userProfile = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
+    $chefPath = "$userProfile\.chef\local-mode-cache\cache"
+    if (Test-Path $chefPath)
+    {
+        Get-ChildItem -Path $chefPath -Recurse -Force | Copy-Item -Destination $logDirectory
+    }
+
     throw "Chef-client failed. Exit code: $LastExitCode"
 }
 

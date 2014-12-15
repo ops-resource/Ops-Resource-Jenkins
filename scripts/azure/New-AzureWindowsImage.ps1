@@ -166,6 +166,7 @@ try
     Write-Verbose ("Copy-AzureFilesToVM complete - VM state: " + $vm.Status)
 
     # Execute the remote installation scripts
+    $hasError = $false
     try 
     {
         Invoke-Command `
@@ -182,6 +183,11 @@ try
             } `
              @commonParameterSwitches
     }
+    catch
+    {
+        $hasError = $true
+        Write-Output ("Error while installing applications. Exception is: " + $_.Exception.ToString())
+    }
     finally
     {
         Write-Verbose "Copying log files from VM ..."
@@ -193,10 +199,13 @@ try
         Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory
     }
 
-    $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
-    Write-Verbose ("Execute installation script complete - VM state: " + $vm.Status)
+    if (-not $hasError)
+    {
+        $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
+        Write-Verbose ("Execute installation script complete - VM state: " + $vm.Status)
 
-    New-AzureSyspreppedVMImage -session $session -resourceGroupName $resourceGroupName -vmName $vmName -imageName $imageName -imageLabel $imageLabel
+        New-AzureSyspreppedVMImage -session $session -resourceGroupName $resourceGroupName -vmName $vmName -imageName $imageName -imageLabel $imageLabel
+    }
 }
 finally
 {
