@@ -21,10 +21,10 @@ param(
 
 
 Write-Output "Installing serverspec gem ..."
-& gem install serverspec --version 2.7.0
+& gem install serverspec --version 2.7.0 --no-document --conservative --minimal-deps --verbose
 
 Write-Output "Installing the RSpec JUnit formatter ..."
-& gem install rspec_junit_formatter --version 0.2.0
+& gem install rspec_junit_formatter --version 0.2.0 --no-document --conservative --minimal-deps --verbose
 
 Write-Output "Executing ServerSpec tests ..."
 & rspec --format RspecJunitFormatter --out "$logDirectory\serverspec.xml" --pattern "$testDirectory/spec/*/*_spec.rb"
