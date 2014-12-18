@@ -10,10 +10,10 @@
     The Install-ApplicationsOnWindowsWithChef script takes all the actions necessary to prepare a Windows machine for use.
 
 
-    .PARAMETER installationDirectory
+    .PARAMETER configurationDirectory
 
     The directory in which all the installer packages and cookbooks can be found. It is expected that the cookbooks are stored
-    in a 'cookbooks' sub-directory of the installationDirectory.
+    in a 'cookbooks' sub-directory of the configurationDirectory.
 
 
     .PARAMETER logDirectory
@@ -28,20 +28,20 @@
  
     .EXAMPLE
  
-    Install-ApplicationsOnWindowsWithChef -installationDirectory "c:\installers" -logDirectory "c:\logs" -cookbookName "myCookbook"
+    Install-ApplicationsOnWindowsWithChef -configurationDirectory "c:\configuration" -logDirectory "c:\logs" -cookbookName "myCookbook"
 #>
 [CmdletBinding()]
 param(
-    [string] $installationDirectory = "c:\installers",
+    [string] $configurationDirectory = "c:\configuration",
     [string] $logDirectory          = "c:\logs",
     [string] $cookbookName          = "jenkinsmaster"
 )
 
 $ErrorActionPreference = "Stop"
 
-if (-not (Test-Path $installationDirectory))
+if (-not (Test-Path $configurationDirectory))
 {
-    New-Item -Path $installationDirectory -ItemType Directory
+    New-Item -Path $configurationDirectory -ItemType Directory
 }
 
 if (-not (Test-Path $logDirectory))
@@ -161,7 +161,7 @@ $chefConfig = Join-Path $chefConfigDir 'knife.rb'
 if (-not (Test-Path $chefConfig))
 {
     Write-Output "Creating the chef configuration file"
-    Set-Content -Path $chefConfig -Value ('cookbook_path ["' + $installationDirectory + '/cookbooks"]')
+    Set-Content -Path $chefConfig -Value ('cookbook_path ["' + $configurationDirectory + '/cookbooks"]')
 
     # Make a copy of the config for debugging purposes
     Copy-Item $chefConfig $logDirectory

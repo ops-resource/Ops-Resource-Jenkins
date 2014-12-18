@@ -126,7 +126,7 @@ Write-Verbose "imageLabel: $imageLabel"
 $logDir = $config.output.logpath
 Write-Verbose "logDir: $logDir"
 
-$remoteInstallerDirectory = 'c:\installers'
+$remoteConfigurationDirectory = 'c:\configuration'
 $remoteLogDirectory = "c:\logs"
 
 # Set the storage account for the selected subscription
@@ -162,7 +162,7 @@ try
     Write-Verbose ("Get-PSSessionForAzureVM complete - VM state: " + $vm.Status)
     
     # Create the installer directory on the virtual machine
-    Copy-FilesToRemoteMachine -session $session -remoteDirectory $remoteInstallerDirectory -localDirectory $installationDirectory
+    Copy-FilesToRemoteMachine -session $session -remoteDirectory $remoteConfigurationDirectory -localDirectory $installationDirectory
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Copy-FilesToRemoteMachine complete - VM state: " + $vm.Status)
@@ -173,15 +173,15 @@ try
     {
         Invoke-Command `
             -Session $session `
-            -ArgumentList @( (Join-Path $remoteInstallerDirectory (Split-Path -Leaf $installationScript)), $remoteInstallerDirectory, $remoteLogDirectory ) `
+            -ArgumentList @( (Join-Path $remoteConfigurationDirectory (Split-Path -Leaf $installationScript)), $remoteConfigurationDirectory, $remoteLogDirectory ) `
             -ScriptBlock {
                 param(
                     [string] $installationScript,
-                    [string] $installationDirectory,
+                    [string] $configurationDirectory,
                     [string] $logDirectory
                 )
             
-                & $installationScript -installationDirectory $installationDirectory -logDirectory $logDirectory
+                & $installationScript -configurationDirectory $configurationDirectory -logDirectory $logDirectory
             } `
              @commonParameterSwitches
     }
@@ -197,7 +197,7 @@ try
         
         Write-Verbose "Copied log files from VM"
 
-        Remove-FilesFromRemoteMachine -session $session -remoteDirectory $remoteInstallerDirectory
+        Remove-FilesFromRemoteMachine -session $session -remoteDirectory $remoteConfigurationDirectory
         Remove-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory
     }
 
