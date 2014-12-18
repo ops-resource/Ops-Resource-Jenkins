@@ -1,17 +1,34 @@
 <#
     .SYNOPSIS
  
-    Takes all the actions necessary to prepare a Windows machine for use as a Jenkins master.
+    Takes all the actions necessary to prepare a Windows machine for use. The final use of the machine depends on the Chef cookbook that is
+    provided.
  
  
     .DESCRIPTION
  
-    The Install-ApplicationsOnWindowsWithChef script takes all the actions necessary to prepare a Windows machine for use as a Jenkins master
+    The Install-ApplicationsOnWindowsWithChef script takes all the actions necessary to prepare a Windows machine for use.
+
+
+    .PARAMETER installationDirectory
+
+    The directory in which all the installer packages and cookbooks can be found. It is expected that the cookbooks are stored
+    in a 'cookbooks' sub-directory of the installationDirectory.
+
+
+    .PARAMETER logDirectory
+
+    The directory in which all the logs should be stored.
+
+
+    .PARAMETER cookbookName
+
+    The name of the cookbook that should be used to configure the current machine.
  
  
     .EXAMPLE
  
-    Install-ApplicationsOnWindowsWithChef
+    Install-ApplicationsOnWindowsWithChef -installationDirectory "c:\installers" -logDirectory "c:\logs" -cookbookName "myCookbook"
 #>
 [CmdletBinding()]
 param(
