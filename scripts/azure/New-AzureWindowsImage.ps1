@@ -59,6 +59,8 @@ $commonParameterSwitches =
     }
 
 # Load the helper functions
+$winrmHelpers = Join-Path (Split-Path -Parent $azureScriptDirectory) WinRM.ps1
+. $winrmHelpers
 $azureHelpers = Join-Path $azureScriptDirectory Azure.ps1
 . $azureHelpers
 
@@ -160,10 +162,10 @@ try
     Write-Verbose ("Get-PSSessionForAzureVM complete - VM state: " + $vm.Status)
     
     # Create the installer directory on the virtual machine
-    Copy-AzureFilesToVM -session $session -remoteDirectory $remoteInstallerDirectory -localDirectory $installationDirectory
+    Copy-FilesToRemoteMachine -session $session -remoteDirectory $remoteInstallerDirectory -localDirectory $installationDirectory
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
-    Write-Verbose ("Copy-AzureFilesToVM complete - VM state: " + $vm.Status)
+    Write-Verbose ("Copy-FilesToRemoteMachine complete - VM state: " + $vm.Status)
 
     # Execute the remote installation scripts
     $hasError = $false
@@ -191,12 +193,12 @@ try
     finally
     {
         Write-Verbose "Copying log files from VM ..."
-        Copy-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
+        Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
         
         Write-Verbose "Copied log files from VM"
 
-        Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteInstallerDirectory
-        Remove-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory
+        Remove-FilesFromRemoteMachine -session $session -remoteDirectory $remoteInstallerDirectory
+        Remove-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory
     }
 
     if (-not $hasError)

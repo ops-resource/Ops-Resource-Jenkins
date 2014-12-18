@@ -60,6 +60,8 @@ $commonParameterSwitches =
     }
 
 # Load the helper functions
+$winrmHelpers = Join-Path (Split-Path -Parent $azureScriptDirectory) WinRM.ps1
+. $winrmHelpers
 $azureHelpers = Join-Path $azureScriptDirectory Azure.ps1
 . $azureHelpers
 
@@ -144,7 +146,7 @@ try
         -adminPassword $adminPassword
 
     $remoteDirectory = 'c:\verification'
-    Copy-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -localDirectory $testDirectory
+    Copy-FilesToRemoteMachine -session $session -remoteDirectory $remoteDirectory -localDirectory $testDirectory
 
     # Verify that everything is there
     $testResult = Invoke-Command `
@@ -163,7 +165,7 @@ try
          @commonParameterSwitches
 
     Write-Verbose "Copying log files from VM ..."
-    Copy-AzureFilesFromVM -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
+    Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
 
     if ($testResult -ne 0)
     {
