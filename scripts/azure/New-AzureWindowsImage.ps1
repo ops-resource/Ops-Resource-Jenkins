@@ -162,7 +162,7 @@ try
     Write-Verbose ("Get-PSSessionForAzureVM complete - VM state: " + $vm.Status)
     
     # Create the installer directory on the virtual machine
-    Copy-FilesToRemoteMachine -session $session -remoteDirectory $remoteConfigurationDirectory -localDirectory $installationDirectory
+    Copy-FilesToRemoteMachine -session $session -localDirectory $installationDirectory -remoteDirectory $remoteConfigurationDirectory 
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Copy-FilesToRemoteMachine complete - VM state: " + $vm.Status)

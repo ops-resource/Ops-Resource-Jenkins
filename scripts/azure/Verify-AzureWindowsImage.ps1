@@ -146,7 +146,7 @@ try
         -adminPassword $adminPassword
 
     $remoteDirectory = 'c:\verification'
-    Copy-FilesToRemoteMachine -session $session -remoteDirectory $remoteDirectory -localDirectory $testDirectory
+    Copy-FilesToRemoteMachine -session $session -localDirectory $testDirectory -remoteDirectory $remoteDirectory 
 
     # Verify that everything is there
     $testResult = Invoke-Command `
