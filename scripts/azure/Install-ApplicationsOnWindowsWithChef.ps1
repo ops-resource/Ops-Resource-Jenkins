@@ -37,11 +37,52 @@ param(
     [string] $cookbookName          = "jenkinsmaster"
 )
 
-$ErrorActionPreference = "Stop"
+function Install-Msi
+{
+    param(
+        [string] $msiFile,
+        [string] $logFile
+    )
 
+    $p = Start-Process -FilePath "msiExec.exe" -ArgumentList "/i $msiFile /Lime! $logFile /qn" -PassThru
+    $p.WaitForExit()
+
+    if ($p.ExitCode -ne 0)
+    {
+        throw "Failed to install: $msiFile"
+    }
+}
+
+function Uninstall-Msi
+{
+    param(
+        [string] $msiFile,
+        [string] $logFile
+    )
+
+    $p = Start-Process -FilePath "msiExec.exe" -ArgumentList "/x $msiFile /Lime! $logFile /qn" -PassThru
+    $p.WaitForExit()
+
+    if ($p.ExitCode -ne 0)
+    {
+        throw "Failed to install: $msiFile"
+    }
+}
+
+# Stop everything if there are errors
+$ErrorActionPreference = 'Stop'
+
+$commonParameterSwitches =
+    @{
+        Verbose = $PSBoundParameters.ContainsKey('Verbose');
+        Debug = $PSBoundParameters.ContainsKey('Debug');
+        ErrorAction = "Stop"
+    }
+
+# The directory that contains all the installation files
 if (-not (Test-Path $configurationDirectory))
 {
-    New-Item -Path $configurationDirectory -ItemType Directory
+    throw "Failed to find the configuration directory."
 }
 
 if (-not (Test-Path $logDirectory))
@@ -49,144 +90,82 @@ if (-not (Test-Path $logDirectory))
     New-Item -Path $logDirectory -ItemType Directory
 }
 
+# Download chef client. Note that this is obviously hard-coded but for now it will work. Later on we'll make this a configuration option
+Write-Output "Downloading chef installer ..."
+$chefClientInstallFile = "chef-windows-11.16.4-1.windows.msi"
+$chefClientDownloadUrl = "https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/x86_64/" + $chefClientInstallFile
+$chefClientInstall = Join-Path $configurationDirectory $chefClientInstallFile
+Invoke-WebRequest -Uri $chefClientDownloadUrl -OutFile $chefClientInstall -Verbose
 
-# Install Chocolatey
-Write-Output "Installing chocolatey ..."
-Invoke-Expression ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
+Write-Output "Chef download complete."
+if (-not (Test-Path $chefClientInstall))
+{
+    throw 'Failed to download the chef installer.'
+}
 
-# Add chocolatey to the path
-$env:ChocolateyInstall = "C:\ProgramData\chocolatey"
+# Install the chef client
+Unblock-File -Path $chefClientInstall
 
-# Install ruby
-Write-Output "Installing ruby via chocolatey ..."
-& choco install ruby -version 2.0.0.57600
+Write-Output "Installing chef from $chefClientInstall ..."
+$chefInstallLogFile = Join-Path $logDirectory "chef.install.log"
+Install-Msi -msiFile "$chefClientInstall" -logFile "$chefInstallLogFile"
 
-# Patch PATH for ruby
-$rubyPath = "C:\tools\ruby200"
-$env:PATH += ";$rubyPath\bin"
-
-# install ruby2.devkit
-Write-Output "Installing ruby2.devkit via chocolatey ..."
-& choco install ruby2.devkit -version 4.7.2.2013022402
-
-# patch devkit config
-Write-Output "Patching ruby devkit config ..."
-Add-Content -Path "C:\tools\DevKit2\config.yml" -Value " - $rubyPath"
-
-# rerun devkit install stuff
-Write-Output "Updating ruby with DevKit ..."
-$currentPath = $pwd
 try 
 {
-    sl "C:\tools\DevKit2\"
-    & ruby "dk.rb" install
-}
-finally
-{
-    sl $currentPath
-}
-
-# patch the SSL certs
-# Based on: http://stackoverflow.com/a/16134586/539846
-$rubyCertDir = "c:\tools\rubycerts"
-if (-not (Test-Path $rubyCertDir))
-{
-    New-Item -Path $rubyCertDir -ItemType Directory | Out-Null
-}
-
-$rubyCertFile = Join-Path $rubyCertDir "cacert.pem"
-Invoke-WebRequest -Uri "http://curl.haxx.se/ca/cacert.pem" -OutFile $rubyCertFile -Verbose
-Unblock-File -Path $rubyCertFile
-
-# Permanently set the environment variable for the machine
-[Environment]::SetEnvironmentVariable("SSL_CERT_FILE", "$rubyCertFile", "Machine")
-
-# But also set it for the current process because environment variables aren't reloaded
-$env:SSL_CERT_FILE = $rubyCertFile
-
-Write-Output ("Environment variable SSL_CERT_FILE set to: " + $env:SSL_CERT_FILE)
-
-# Temporarily rename the rake binaries because one of the gems will try to install rake which will
-# lead to the whole process stopping while waiting for the user to approve that change. Hence we 
-# approve that change now by renaming the rake binaries
-Write-Output "Renaming rake binaries ..."
-Rename-Item -Path "$rubyPath\bin\rake" -NewName "rake-old" -Force
-Rename-Item -Path "$rubyPath\bin\rake.bat" -NewName "rake-old.bat" -Force
-
-# load gems.
-# Do this in a try..catch..finally so that we can continue even if there are errors because some of the gem installs 
-# raise warnings that Powershell considers to be fatal errors, e.g. the ffi-yajl gem produces C compiler warnings
-# that Powershell takes far too seriously. So we just supress the whole thing and we'll see if it works later.
-try
-{
-    $ErrorActionPreference = "SilentlyContinue"
-
-    Write-Output "Installing win32-process gem ..."
-    & gem install win32-process --version 0.7.4 --no-document --conservative --minimal-deps --verbose
-
-    Write-Output "Installing win32-nio gem ..."
-    & gem install win32-nio --version 0.1.3 --no-document --conservative --minimal-deps --verbose
-
-    Write-Output "Installing win32-service gem ..."
-    & gem install win32-service --version 0.8.6 --no-document --conservative --minimal-deps --verbose
-
-    Write-Output "Installing win32-eventlog gem ..."
-    & gem install win32-eventlog --version 0.6.2 --no-document --conservative --minimal-deps --verbose
-
-    Write-Output "Installing windows-pr gem ..."
-    & gem install windows-pr --version 1.2.4 --no-document --conservative --minimal-deps --verbose
-
-    Write-Output "Installing chef gem ..."
-    & gem install chef --version 12.0.1 --no-document --conservative --minimal-deps --verbose
-}
-catch 
-{
-    Write-Output ("Failed to install gems. Error was: " + $_.Exception.ToString())
-}
-finally
-{
-    $ErrorActionPreference = "Stop"
-}
-
-
-# Set the path for the cookbooks
-$chefConfigDir = Join-Path $env:UserProfile ".chef"
-if (-not (Test-Path $chefConfigDir))
-{
-    Write-Output "Creating the chef configuration directory ..."
-    New-Item -Path $chefConfigDir -ItemType Directory | Out-Null
-}
-
-$chefConfig = Join-Path $chefConfigDir 'knife.rb'
-if (-not (Test-Path $chefConfig))
-{
-    Write-Output "Creating the chef configuration file"
-    Set-Content -Path $chefConfig -Value ('cookbook_path ["' + $configurationDirectory + '/cookbooks"]')
-
-    # Make a copy of the config for debugging purposes
-    Copy-Item $chefConfig $logDirectory
-}
-
-Write-Output "Running chef-client ..."
-try 
-{
-    & chef-client -z -o $cookbookName    
-}
-catch 
-{
-    Write-Output ("chef-client failed. Error was: " + $_.Exception.ToString())
-}
-
-if (($LastExitCode -ne $null) -and ($LastExitCode -ne 0))
-{
-    $userProfile = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
-    $chefPath = "$userProfile\.chef\local-mode-cache\cache"
-    if (Test-Path $chefPath)
+    # Set the path for the cookbooks
+    $chefConfigDir = Join-Path $env:UserProfile ".chef"
+    if (-not (Test-Path $chefConfigDir))
     {
-        Get-ChildItem -Path $chefPath -Recurse -Force | Copy-Item -Destination $logDirectory
+        Write-Output "Creating the chef configuration directory ..."
+        New-Item -Path $chefConfigDir -ItemType Directory | Out-Null
     }
 
-    throw "Chef-client failed. Exit code: $LastExitCode"
-}
+    $chefConfig = Join-Path $chefConfigDir 'knife.rb'
+    if (-not (Test-Path $chefConfig))
+    {
+        Write-Output "Creating the chef configuration file"
+        Set-Content -Path $chefConfig -Value ('cookbook_path ["' + $configurationDirectory + '/cookbooks"]')
 
-Write-Output "Chef-client completed."
+        # Make a copy of the config for debugging purposes
+        Copy-Item $chefConfig $logDirectory
+    }
+
+    $opscodePath = "c:\opscode"
+    if (-not (Test-Path $opscodePath))
+    {
+        throw "Chef install path not found."
+    }
+
+    # Add the ruby path to the $env:PATH for the current session.
+    $embeddedRubyPath = "$opscodePath\chef\embedded\bin"
+    if (-not (Test-Path $embeddedRubyPath))
+    {
+        throw "Embedded ruby path not found."
+    }
+
+    $env:PATH += ";" + $embeddedRubyPath
+
+    # Execute the chef client as: chef-client -z -o $cookbookname
+    $chefClient = "$opscodePath\chef\bin\chef-client.bat"
+    if (-not (Test-Path $chefClient))
+    {
+        throw "Chef client not found"
+    }
+
+    Write-Output "Running chef-client ..."
+    & $chefClient -z -o $cookbookName
+    if (($LastExitCode -ne $null) -and ($LastExitCode -ne 0))
+    {
+        throw "Chef-client failed. Exit code: $LastExitCode"
+    }
+
+    Write-Output "Chef-client completed."
+}
+finally
+{
+    Write-Output "Uninstalling chef ..."
+
+    # delete chef from the machine
+    $chefUninstallLogFile = Join-Path $logDirectory "chef.uninstall.log"
+    Uninstall-Msi -msiFile $chefClientInstall -logFile $chefUninstallLogFile
+}
