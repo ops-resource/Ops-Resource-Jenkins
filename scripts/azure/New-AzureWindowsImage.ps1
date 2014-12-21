@@ -45,7 +45,8 @@
 [CmdletBinding(SupportsShouldProcess = $True)]
 param(
     [string] $configFile = $(throw "Please provide a configuration file path."),
-    [string] $azureScriptDirectory = $PSScriptRoot
+    [string] $azureScriptDirectory = $PSScriptRoot,
+    [string] $logDirectory = $(throw "Please specify a log directory.")
 )
 
 # Stop everything if there are errors
@@ -123,9 +124,6 @@ Write-Verbose "imageName: $imageName"
 $imageLabel = $config.service.image.label
 Write-Verbose "imageLabel: $imageLabel"
 
-$logDir = $config.output.logpath
-Write-Verbose "logDir: $logDir"
-
 $remoteConfigurationDirectory = 'c:\configuration'
 $remoteLogDirectory = "c:\logs"
 
@@ -193,7 +191,7 @@ try
     finally
     {
         Write-Verbose "Copying log files from VM ..."
-        Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
+        Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDirectory
         
         Write-Verbose "Copied log files from VM"
 

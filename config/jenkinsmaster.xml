@@ -66,7 +66,4 @@
         <installerpath>${DirInstallers}</installerpath>
         <entrypoint name="${FileInstallerEntryPoint}" />
     </desiredstate>
-    <output>
-        <logpath>${DirLogs}</logpath>
-    </output>
 </configuration>

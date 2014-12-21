@@ -46,7 +46,8 @@
 param(
     [string] $configFile = $(throw "Please provide a configuration file path."),
     [string] $azureScriptDirectory = $PSScriptRoot,
-    [string] $testDirectory = $PSScriptRoot
+    [string] $testDirectory = $PSScriptRoot,
+    [string] $logDirectory =  $(throw "Please specify a log directory.")
 )
 
 # Stop everything if there are errors
@@ -159,14 +160,15 @@ try
                 [string] $logDirectory
             )
         
-            $result = & $verificationScript -testDirectory $testDirectory -logDirectory $logDirectory
-            return $result
+            & $verificationScript -testDirectory $testDirectory -logDirectory $logDirectory
+            return $LastExitCode
         } `
          @commonParameterSwitches
 
     Write-Verbose "Copying log files from VM ..."
-    Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDir
+    Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDirectory
 
+    Write-Output "Test result: $testResult"
     if ($testResult -ne 0)
     {
         throw "Test FAILED"

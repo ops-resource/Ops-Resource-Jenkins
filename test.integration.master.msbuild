@@ -130,7 +130,7 @@
         </CreateProperty>
         
         <!-- Execute the tests and store the results. -->
-        <CreateProperty Value="&amp; &#39;$(FileJenkinsMasterTestScript)&#39; -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -testDirectory &#39;$(DirBuildTempTest)&#39; -Verbose">
+        <CreateProperty Value="&amp; &#39;$(FileJenkinsMasterTestScript)&#39; -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -testDirectory &#39;$(DirBuildTempTest)&#39; -logDirectory &#39;$(DirBuildLogs)&#39; -Verbose">
             <Output TaskParameter="Value" PropertyName="CommandInvokeTest" />
         </CreateProperty>
         

@@ -170,7 +170,7 @@
         </CreateProperty>
         
         <!-- Invoke the powershell script -->
-        <CreateProperty Value="&amp; $(FileJenkinsMasterScript) -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -Verbose">
+        <CreateProperty Value="&amp; $(FileJenkinsMasterScript) -configFile &#39;$(FileJenkinsMasterConfig)&#39; -azureScriptDirectory &#39;$(DirScriptsAzure)&#39; -logDirectory &#39;$(DirBuildLogs)&#39; -Verbose">
             <Output TaskParameter="Value" PropertyName="CommandInvokeScript" />
         </CreateProperty>
         
