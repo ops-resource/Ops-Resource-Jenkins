@@ -124,7 +124,7 @@ try
     if (-not (Test-Path $chefConfig))
     {
         Write-Output "Creating the chef configuration file"
-        Set-Content -Path $chefConfig -Value ('cookbook_path ["' + $configurationDirectory + '/cookbooks"]')
+        Set-Content -Path $chefConfig -Value ('cookbook_path ["' + $configurationDirectory.Replace('\', '/') + '/cookbooks"]')
 
         # Make a copy of the config for debugging purposes
         Copy-Item $chefConfig $logDirectory
@@ -153,9 +153,24 @@ try
     }
 
     Write-Output "Running chef-client ..."
-    & $chefClient -z -o $cookbookName
+    try 
+    {
+        & $chefClient -z -o $cookbookName
+    }
+    catch 
+    {
+        Write-Output ("chef-client failed. Error was: " + $_.Exception.ToString())
+    }
+
     if (($LastExitCode -ne $null) -and ($LastExitCode -ne 0))
     {
+        $userProfile = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::UserProfile)
+        $chefPath = "$userProfile\.chef\local-mode-cache\cache"
+        if (Test-Path $chefPath)
+        {
+            Get-ChildItem -Path $chefPath -Recurse -Force | Copy-Item -Destination $logDirectory
+        }
+
         throw "Chef-client failed. Exit code: $LastExitCode"
     }
 
