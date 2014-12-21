@@ -57,6 +57,6 @@
     </Target>
     
     <Target Name="_Analyze_Foodcritic_Execute">
-        <Exec Command="$(ToolsExternalFoodCritic) &quot;$(DirChefCookbooks)&quot;" />
+        <Exec Command="$(ToolsExternalFoodCritic) -f any &quot;$(DirChefCookbooks)&quot;" />
     </Target>
  </Project>
