@@ -28,6 +28,7 @@
        
         <DirConfig Condition=" '$(DirConfig)' == '' ">$(DirWorkspace)\config</DirConfig>
         <DirChefCookbooks Condition=" '$(DirChefCookbooks)' == '' ">$(DirWorkspace)\cookbooks</DirChefCookbooks>
+        <DirChefCookbooksJenkinsMaster>$(DirChefCookbooks)\jenkinsmaster</DirChefCookbooksJenkinsMaster>
         <DirScripts Condition=" '$(DirScripts)' == '' ">$(DirWorkspace)\scripts</DirScripts>
         <DirScriptsAzure Condition=" '$(DirScriptsAzure)' == '' ">$(DirScripts)\azure</DirScriptsAzure>
         <DirTemplates Condition=" '$(DirTemplates)' == '' ">$(DirWorkspace)\templates</DirTemplates>
@@ -54,6 +55,8 @@
         <FileJenkinsMasterScript Condition=" '$(FileJenkinsMasterScript)' == '' ">$(DirScriptsAzure)\New-AzureWindowsImage.ps1</FileJenkinsMasterScript>
         <FileRemoteInstallerMain Condition=" '$(FileRemoteInstallerMain)' == '' ">$(DirScriptsAzure)\Install-ApplicationsOnWindowsWithChef.ps1</FileRemoteInstallerMain>
         <FileErrorRemoveImage Condition=" '$(FileErrorRemoveImage)' == '' ">$(DirWorkspace)\error.remove.image.msbuild</FileErrorRemoveImage>
+        <FileJenkinsMasterMetadataTemplate>$(DirChefCookbooksJenkinsMaster)\metadata.rb</FileJenkinsMasterMetadataTemplate>
+        <FileJenkinsMasterMetadataGenerated>$(DirBuildTempSetupCookbooks)\metadata.rb</FileJenkinsMasterMetadataGenerated>
         
         <!-- Version number -->
         <VersionSemantic>0</VersionSemantic>
@@ -102,7 +105,8 @@
         <Message Text="Version: $(VersionSemantic)" />
     </Target>
     
-    <Target Name="_Build_Master_GatherInstallers">
+    <Target Name="_Build_Master_GatherInstallers"
+            DependsOnTargets="nBuildKit_Shared_TemplateTokens_Initialize">
         <MakeDir Directories="$(DirBuild)" 
                  Condition="!Exists('$(DirBuild)')" />
         <MakeDir Directories="$(DirBuildTemp)" 
@@ -118,10 +122,16 @@
               DestinationFiles="@(SetupFiles->'$(DirBuildTempSetup)\%(RecursiveDir)%(Filename)%(Extension)')" />
 
         <ItemGroup>
-            <CookBookFiles Include="$(DirChefCookbooks)\jenkinsmaster\**\*.*" />
+            <CookBookFiles Include="$(DirChefCookbooksJenkinsMaster)\**\*.*"
+                           Exclude="$(FileJenkinsMasterMetadataTemplate)" />
         </ItemGroup>
         <Copy SourceFiles="@(CookBookFiles)"
               DestinationFiles="@(CookBookFiles->'$(DirBuildTempSetupCookbooks)\%(RecursiveDir)%(Filename)%(Extension)')" />
+
+        <TemplateFile Template="$(FileJenkinsMasterMetadataTemplate)" 
+                      OutputFileName="$(FileJenkinsMasterMetadataGenerated)" 
+                      Tokens="@(TemplateTokens)" 
+                      Condition=" '$(ShouldExecute)' == 'true' "/>
     </Target>
 
     <Target Name="_Build_Master_Build"
