@@ -110,7 +110,7 @@
               DestinationFiles="@(TestFiles->'$(DirBuildTempTest)\%(RecursiveDir)%(Filename)%(Extension)')" />
 
         <ItemGroup>
-            <SpecFiles Include="$(DirSpecMaster)\**\*.*" />
+            <SpecFiles Include="$(DirSpec)\**\*.*" />
         </ItemGroup>
         <Copy SourceFiles="@(SpecFiles)"
               DestinationFiles="@(SpecFiles->'$(DirBuildTempTestSpec)\%(RecursiveDir)%(Filename)%(Extension)')" />

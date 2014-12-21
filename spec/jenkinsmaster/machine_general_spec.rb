@@ -1,4 +1,4 @@
-require 'spec_helper'
+require File.join(File.dirname(__FILE__), '..', 'spec_helper')
 
 describe file('c:\temp') do
     it { should be_directory }
