@@ -150,7 +150,7 @@ try
     Copy-FilesToRemoteMachine -session $session -localDirectory $testDirectory -remoteDirectory $remoteDirectory 
 
     # Verify that everything is there
-    $testResult = Invoke-Command `
+    Invoke-Command `
         -Session $session `
         -ArgumentList @( (Join-Path $remoteDirectory 'Verify-ApplicationsOnWindows.ps1'), (Join-Path $remoteDirectory "spec"), $remoteLogDirectory ) `
         -ScriptBlock {
@@ -161,21 +161,29 @@ try
             )
         
             & $verificationScript -testDirectory $testDirectory -logDirectory $logDirectory
-            return $LastExitCode
         } `
          @commonParameterSwitches
 
     Write-Verbose "Copying log files from VM ..."
     Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDirectory
 
-    Write-Output "Test result: $testResult"
-    if ($testResult -ne 0)
+    $serverSpecLog = Join-Path $logDirectory 'serverspec.xml'
+    if (-not (Test-Path $serverSpecLog))
     {
-        throw "Test FAILED"
+        throw "Test failed. No serverspec log produced."
+    }
+
+    $serverSpecXml = [xml](Get-Content $serverSpecLog)
+    $failures = $serverSpecXml.testsuite.failures
+    $errors = $serverSpecXml.testsuite.errors
+
+    if (($failures -eq 0) -and ($errors -eq 0))
+    {
+        Write-Output "Test PASSED"
     }
     else
     {
-        Write-Output "Test PASSED"
+        throw "Test FAILED"
     }
 }
 finally

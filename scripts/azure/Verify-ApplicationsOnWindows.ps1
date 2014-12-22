@@ -102,8 +102,6 @@ try
         $storedErrorActionPreference = $ErrorActionPreference
         $ErrorActionPreference = "SilentlyContinue"
         & rspec --format RspecJunitFormatter --out "$logDirectory\serverspec.xml" --pattern "$testDirectory/*/*_spec.rb"
-
-        Write-Output "rspec exit code: $LastExitCode"
     }
     finally
     {
@@ -118,5 +116,3 @@ catch
         $LastExitCode = -1
     }
 }
-
-Write-Output "exit code: $LastExitCode"
