@@ -174,10 +174,11 @@ try
     }
 
     $serverSpecXml = [xml](Get-Content $serverSpecLog)
+    $tests = $serverSpecXml.testsuite.tests
     $failures = $serverSpecXml.testsuite.failures
     $errors = $serverSpecXml.testsuite.errors
 
-    if (($failures -eq 0) -and ($errors -eq 0))
+    if (($tests -gt 0) -and ($failures -eq 0) -and ($errors -eq 0))
     {
         Write-Output "Test PASSED"
     }
