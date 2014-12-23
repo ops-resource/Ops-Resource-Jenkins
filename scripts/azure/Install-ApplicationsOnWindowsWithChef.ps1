@@ -183,4 +183,6 @@ finally
     # delete chef from the machine
     $chefUninstallLogFile = Join-Path $logDirectory "chef.uninstall.log"
     Uninstall-Msi -msiFile $chefClientInstall -logFile $chefUninstallLogFile
+
+    Remove-Item -Path $chefConfigDir -Force -Recurse -ErrorAction SilentlyContinue
 }
