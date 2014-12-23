@@ -93,15 +93,26 @@ Write-Output "Installing serverspec gem ..."
 Write-Output "Installing the RSpec JUnit formatter ..."
 & gem install rspec_junit_formatter --version 0.2.0 --no-document --conservative --minimal-deps --verbose
 
-Write-Output "Executing ServerSpec tests ..."
+$currentDir = $pwd
 try
 {
-    # rspec may push data to the error stream which powershell will consider a failure, even if it's not.
-    $storedErrorActionPreference = $ErrorActionPreference
-    $ErrorActionPreference = "SilentlyContinue"
-    & rspec --format RspecJunitFormatter --out "$logDirectory\serverspec.xml" --pattern "$testDirectory/*/*_spec.rb"
+    Set-Location $testDirectory
+    try
+    {
+        # rspec may push data to the error stream which powershell will consider a failure, even if it's not.
+        $storedErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "SilentlyContinue"
+
+        $rspecPattern = "./*/*_spec.rb"
+        Write-Output "Executing ServerSpec tests from: $pwd. With pattern: $rspecPattern"
+        & rspec --format documentation --format RspecJunitFormatter --out "$logDirectory\serverspec.xml" --pattern $rspecPattern
+    }
+    finally
+    {
+        $ErrorActionPreference = $storedErrorActionPreference
+    }
 }
 finally
 {
-    $ErrorActionPreference = $storedErrorActionPreference
+    $pwd = $currentDir
 }
