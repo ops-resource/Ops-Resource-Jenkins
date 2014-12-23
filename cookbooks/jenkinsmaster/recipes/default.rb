@@ -13,3 +13,8 @@ end
 file "c:/temp/myfile.txt" do
   content 'This is a test'
 end
+
+# install .NET 3.5
+# Install Java JRE 7 or 8, x64
+# Install jenkins
+# Set-up Jenkins as a service
