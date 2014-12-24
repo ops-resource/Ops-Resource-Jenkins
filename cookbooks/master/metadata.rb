@@ -1,4 +1,4 @@
-name             'jenkinsmaster'
+name             'master'
 maintainer       '${CompanyName} (${CompanyUrl})'
 maintainer_email 'YOUR_EMAIL'
 license          'All rights reserved'

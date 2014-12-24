@@ -1,5 +1,5 @@
 #
-# Cookbook Name:: slave_windows
+# Cookbook Name:: master
 # Recipe:: default
 #
 # Copyright 2014, Vista Entertainment Ltd.

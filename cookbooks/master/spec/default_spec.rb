@@ -1,6 +1,6 @@
 require 'chefspec'
 
-describe 'azure jenkins master'  do
+describe 'master'  do
     let(:chef_run) { ChefSpec::SoloRunner.converge(described_recipe) }
 
     it 'creates a temp directory' do
