@@ -23,7 +23,8 @@
         <DirBuild Condition=" '$(DirBuild)' == '' ">$(DirWorkspace)\build</DirBuild>
         <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
-        <DirBuildTempTest>$(DirBuildTemp)\test</DirBuildTempTest>
+        <DirBuildTempSetup>$(DirBuildTemp)\setup\master</DirBuildTempSetup>
+        <DirBuildTempSetupCookbooks>$(DirBuildTempSetup)\cookbooks</DirBuildTempSetupCookbooks>
 
         <DirChefCookbooks Condition=" '$(DirChefCookbooks)' == '' ">$(DirWorkspace)\cookbooks</DirChefCookbooks>
         
@@ -49,14 +50,18 @@
         <Message Text="The directory containing the build output is located at:          $(DirBuild)" />
         <Message Text="The directory containing the build logs is located at:            $(DirBuildLogs)" />
         <Message Text="The directory containing the temporary build files is located at: $(DirBuildTemp)" />
-        <Message Text="The directory containing the chef cookbooks is located at:        $(DirChefCookbooks)" />
+        <Message Text="The directory containing the chef cookbooks is located at:        $(DirBuildTempSetupCookbooks)" />
         <Message Text=" " />
         
         <Message Text="RSpec command line executable is located at:         $(ToolsExternalRSpec)" />
         <Message Text=" " />
     </Target>
 
+    <PropertyGroup>
+        <RSpecPattern>./*/spec/*_spec.rb</RSpecPattern>
+    </PropertyGroup>
     <Target Name="_Test_Unit_ChefSpec_Execute">
-        <Exec Command="$(ToolsExternalRSpec) --format documentation --format RspecJunitFormatter --out &quot;$(DirBuildLogs)\chefspec.xml&quot; --pattern &quot;$(DirChefCookbooks)/*/spec/*_spec.rb&quot;" />
+        <Exec Command="$(ToolsExternalRSpec) --pattern &quot;$(RSpecPattern)&quot; --format documentation --format RspecJunitFormatter --out &quot;$(DirBuildLogs)\chefspec.xml&quot;"
+              WorkingDirectory="$(DirBuildTempSetupCookbooks)" />
     </Target>
  </Project>

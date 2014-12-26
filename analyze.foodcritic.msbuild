@@ -23,9 +23,8 @@
         <DirBuild Condition=" '$(DirBuild)' == '' ">$(DirWorkspace)\build</DirBuild>
         <DirBuildLogs Condition=" '$(DirBuildLogs)' == '' ">$(DirBuild)\logs</DirBuildLogs>
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
-        <DirBuildTempTest>$(DirBuildTemp)\test</DirBuildTempTest>
-
-        <DirChefCookbooks Condition=" '$(DirChefCookbooks)' == '' ">$(DirWorkspace)\cookbooks</DirChefCookbooks>
+        <DirBuildTempSetup>$(DirBuildTemp)\setup\master</DirBuildTempSetup>
+        <DirBuildTempSetupCookbooks>$(DirBuildTempSetup)\cookbooks</DirBuildTempSetupCookbooks>
         
         <!-- External tools -->
         <ToolsExternalFoodCritic Condition=" '$(ToolsExternalFoodCritic)' == '' ">foodcritic</ToolsExternalFoodCritic>
@@ -49,7 +48,7 @@
         <Message Text="The directory containing the build output is located at:          $(DirBuild)" />
         <Message Text="The directory containing the build logs is located at:            $(DirBuildLogs)" />
         <Message Text="The directory containing the temporary build files is located at: $(DirBuildTemp)" />
-        <Message Text="The directory containing the chef cookbooks is located at:        $(DirChefCookbooks)" />
+        <Message Text="The directory containing the chef cookbooks is located at:        $(DirBuildTempSetupCookbooks)" />
         <Message Text=" " />
         
         <Message Text="Foodcritic command line executable is located at:         $(ToolsExternalFoodCritic)" />
@@ -57,6 +56,7 @@
     </Target>
     
     <Target Name="_Analyze_Foodcritic_Execute">
-        <Exec Command="$(ToolsExternalFoodCritic) -f any &quot;$(DirChefCookbooks)&quot;" />
+        <Exec Command="$(ToolsExternalFoodCritic) -f any ."
+              WorkingDirectory="$(DirBuildTempSetupCookbooks)" />
     </Target>
  </Project>
