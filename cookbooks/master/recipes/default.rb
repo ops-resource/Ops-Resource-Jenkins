@@ -2,7 +2,7 @@
 # Cookbook Name:: master
 # Recipe:: default
 #
-# Copyright 2014, Vista Entertainment Ltd.
+# Copyright 2014, Patrick van der Velde
 #
 # All rights reserved - Do Not Redistribute
 #
@@ -20,10 +20,27 @@ user jenkins_master_username do
 end
 
 # Install 7-zip
-include_recipe '7-zip'
+package node['7-zip']['package_name'] do
+  source node['7-zip']['url']
+  options "INSTALLDIR=\"#{node['7-zip']['home']}\""
+  action :install
+end
 
 # Install GIT 1.9.5
-include_recipe 'git::windows'
+windows_package node['git']['display_name'] do
+  action :install
+  source node['git']['url']
+  installer_type :inno
+end
+
+# Git is installed to Program Files (x86) on 64-bit machines and
+# 'Program Files' on 32-bit machines
+PROGRAM_FILES = ENV['ProgramFiles(x86)'] || ENV['ProgramFiles']
+GIT_PATH = "#{ PROGRAM_FILES }\\Git\\Cmd"
+
+windows_path GIT_PATH do
+  action :add
+end
 
 # Install .gitconfig with the following values:
 # [user]
@@ -34,16 +51,14 @@ include_recipe 'git::windows'
 # [credential]
 #     helper = !\"C:/Program Files (x86)/Git/libexec/git-core/git-credential-wincred.exe\"
 
-
 # Install Java JRE 8 (server JRE tar.gz package)
 powershell_script 'install_java' do
-    cwd
-    code <<-EOH
-        # extract the java.gz.tar file with 7-zip
+    code <<-POWERSHELL
+        $sevenzip = "c:/Program Files/7-zip/7z.exe"
 
         $configurationDir = "c:/configuration"
         $javaTarGz = Join-Path $configurationDir "server-jre-8u25-windows-x64.gz"
-        & c:/Program Files/7-zip/7z.exe x -y -o $configurationDir $javaTarGz
+        & $sevenzip x -y -o $configurationDir $javaTarGz
 
         $javaDir = "c:/java"
         if (Test-Paths $javaDir)
@@ -52,28 +67,23 @@ powershell_script 'install_java' do
         }
 
         $javaTar = Join-Path $configurationDir "server-jre-8u25-windows-x64"
-        & c:/Program Files/7-zip/7z.exe x -y -o $javaDir $javaTar
-    EOH
-    guard_interpreter :powershell_script
-    action :run
+        & $sevenzip x -y -o $javaDir $javaTar
+    POWERSHELL
 end
 
-# Copy Jenkins.jar file
+# Copy Jenkins.war file
 remote_file "c:/ci/jenkins.war" do
-    backup false
     source "http://mirrors.jenkins-ci.org/war/1.595/jenkins.war"
 end
 
 # Copy Java service runner & rename to jenkins.exe
 remote_file "c:/ci/jenkins.exe" do
-    backup false
     source "http://repo.jenkins-ci.org/releases/com/sun/winsw/winsw/1.16/winsw-1.16-bin.exe"
 end
 
 # Create jenkins.exe.config
 file "c:/ci/jenkins.exe.config" do
-    backup false
-    content <<-EOH
+    content <<-XML
 <configuration>
   <runtime>
     <generatePublisherEvidence enabled="false"/> 
@@ -83,7 +93,7 @@ file "c:/ci/jenkins.exe.config" do
     <supportedRuntime version="v2.0.50727" />
   </startup>
 </configuration>
-    EOH
+    XML
     action :create
 end
 
@@ -91,8 +101,7 @@ end
 
 # Create jenkins.xml
 file "c:/ci/jenkins.xml" do
-    backup false
-    content <<-EOH
+    content <<-XML
 <?xml version="1.0"?>
 <!-- 
     The MIT License Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi Permission is hereby granted, free of charge, to any person obtaining a 
@@ -122,7 +131,7 @@ file "c:/ci/jenkins.xml" do
     <logmode>rotate</logmode>
     <onfailure action="restart"/>
 </service>
-    EOH
+    XML
     action :create
 end
 
@@ -130,16 +139,13 @@ end
 
 # Install jenkins.exe as service
 powershell_script 'jenkins_as_service' do
-    cwd
-    environment ({ 'JenkinsUser' => jenkins_master_username }, { 'JenkinsPassword' => jenkins_master_password })
-    code <<-EOH
+    environment ({ 'JenkinsUser' => jenkins_master_username,  'JenkinsPassword' => jenkins_master_password })
+    code <<-POWERSHELL
         $securePassword = ConvertTo-SecureString $env:JenkinsPasword -AsPlainText -Force @commonParameterSwitches
         $credential = New-Object pscredential($env:JenkinsUser, $securePassword)
         
         New-Service -Name 'jenkins' -BinaryPathName 'c:\\ci\\jenkins.exe' -Credential $credential -DisplayName 'Jenkins' -StartupType Automatic
-    EOH
-    guard_interpreter :powershell_script
-    action :run
+    POWERSHELL
 end
 
 # Secure Jenkins
