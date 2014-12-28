@@ -25,6 +25,7 @@
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
         <DirBuildTempSetup>$(DirBuildTemp)\setup\master</DirBuildTempSetup>
         <DirBuildTempSetupCookbooks>$(DirBuildTempSetup)\cookbooks</DirBuildTempSetupCookbooks>
+        <DirBuildTempSetupCookbooksMaster>$(DirBuildTempSetupCookbooks)\master</DirBuildTempSetupCookbooksMaster>
         
         <!-- External tools -->
         <ToolsExternalFoodCritic Condition=" '$(ToolsExternalFoodCritic)' == '' ">foodcritic</ToolsExternalFoodCritic>
@@ -57,6 +58,6 @@
     
     <Target Name="_Analyze_Foodcritic_Execute">
         <Exec Command="$(ToolsExternalFoodCritic) -f any ."
-              WorkingDirectory="$(DirBuildTempSetupCookbooks)" />
+              WorkingDirectory="$(DirBuildTempSetupCookbooksMaster)" />
     </Target>
  </Project>
