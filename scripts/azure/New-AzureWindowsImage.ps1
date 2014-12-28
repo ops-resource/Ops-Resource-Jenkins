@@ -179,7 +179,7 @@ try
                     [string] $logDirectory
                 )
             
-                & $installationScript -configurationDirectory $configurationDirectory -logDirectory $logDirectory
+                & $installationScript -configurationDirectory $configurationDirectory -logDirectory $logDirectory -cookbookName 'master'
             } `
              @commonParameterSwitches
     }

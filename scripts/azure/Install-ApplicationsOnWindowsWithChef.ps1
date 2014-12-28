@@ -34,7 +34,7 @@
 param(
     [string] $configurationDirectory = "c:\configuration",
     [string] $logDirectory          = "c:\logs",
-    [string] $cookbookName          = "jenkinsmaster"
+    [string] $cookbookName          = "master"
 )
 
 function Install-Msi
