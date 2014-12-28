@@ -25,6 +25,7 @@
         <DirBuildTemp Condition=" '$(DirBuildTemp)' == '' ">$(DirBuild)\temp</DirBuildTemp>
         <DirBuildTempSetup>$(DirBuildTemp)\setup\master</DirBuildTempSetup>
         <DirBuildTempSetupCookbooks>$(DirBuildTempSetup)\cookbooks</DirBuildTempSetupCookbooks>
+        <DirBuildTempSetupCookbooksMaster>$(DirBuildTempSetupCookbooks)\master</DirBuildTempSetupCookbooksMaster>
        
         <DirConfig Condition=" '$(DirConfig)' == '' ">$(DirWorkspace)\config</DirConfig>
         <DirChefCookbooks Condition=" '$(DirChefCookbooks)' == '' ">$(DirWorkspace)\cookbooks</DirChefCookbooks>
@@ -58,7 +59,7 @@
         <FileRemoteInstallerMain Condition=" '$(FileRemoteInstallerMain)' == '' ">$(DirScriptsAzure)\Install-ApplicationsOnWindowsWithChef.ps1</FileRemoteInstallerMain>
         <FileErrorRemoveImage Condition=" '$(FileErrorRemoveImage)' == '' ">$(DirWorkspace)\error.remove.image.msbuild</FileErrorRemoveImage>
         <FileMasterMetadataTemplate>$(DirChefCookbooksMaster)\metadata.rb</FileMasterMetadataTemplate>
-        <FileMasterMetadataGenerated>$(DirBuildTempSetupCookbooks)\metadata.rb</FileMasterMetadataGenerated>
+        <FileMasterMetadataGenerated>$(DirBuildTempSetupCookbooksMaster)\metadata.rb</FileMasterMetadataGenerated>
         
         <!-- Version number -->
         <VersionSemantic>0</VersionSemantic>
