@@ -20,9 +20,9 @@ user jenkins_master_username do
 end
 
 # Install 7-zip
-package node['7-zip']['package_name'] do
+# options "INSTALLDIR=\"#{ENV['ProgramFiles']/7-zip}\""
+windows_package node['7-zip']['package_name'] do
   source node['7-zip']['url']
-  options "INSTALLDIR=\"#{node['7-zip']['home']}\""
   action :install
 end
 
@@ -55,7 +55,7 @@ end
 # Install Java JRE 8 (server JRE tar.gz package)
 powershell_script 'install_java' do
   code <<-POWERSHELL
-    $sevenzip = 'c:/Program Files/7-zip/7z.exe'
+    $sevenzip = 'c:/Program Files (x86)/7-zip/7z.exe'
 
     $configurationDir = 'c:/configuration'
     $javaTarGz = Join-Path $configurationDir 'server-jre-8u25-windows-x64.gz'

@@ -35,7 +35,7 @@ describe 'master'  do
 
   # Install 7-zip (c:\program files\7-zip --> 9.34)
   it 'installs 7-zip' do
-    expect(chef_run).to install_package('7-Zip 9.35 (x64 edition)')
+    expect(chef_run).to install_windows_package('7-Zip 9.35 (x64 edition)')
   end
 
   # install git (c:\program files (x86)\git --> 1.9.5)
