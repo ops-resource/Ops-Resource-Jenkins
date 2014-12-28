@@ -344,8 +344,7 @@ function Copy-FilesToRemoteMachine
             ErrorAction = "Stop"
         }
 
-    $filesToCopy = Get-ChildItem -Path $localDirectory -Recurse -Force @commonParameterSwitches | 
-        Where-Object { -not $_.PsIsContainer } |
+    $filesToCopy = Get-ChildItem -File -Path $localDirectory -Recurse -Force @commonParameterSwitches | 
         Select-Object -ExpandProperty FullName
 
     # Push binaries to the new VM
@@ -424,7 +423,7 @@ function Copy-FilesFromRemoteMachine
                 [string] $dir
             )
         
-            return Get-ChildItem -Recurse -Path $dir
+            return Get-ChildItem -File -Recurse -Path $dir
         } `
          @commonParameterSwitches
 
