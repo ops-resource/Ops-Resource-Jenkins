@@ -213,7 +213,7 @@ function Copy-ItemFromRemoteMachine
         [System.Management.Automation.Runspaces.PSSession] $session
     )
 
-    Write-Output "Copying $fileName from $localPath to $remotePath on $($session.Name) ..."
+    Write-Output "Copying $fileName from $remotePath to $localPath on $($session.Name) ..."
 
     # Open local file
     try
@@ -432,7 +432,8 @@ function Copy-FilesFromRemoteMachine
     foreach($fileToCopy in $remoteFiles)
     {
         $file = $fileToCopy.FullName
-        $localPath = Join-Path $localDirectory (Split-Path -Leaf $file)
+        $relativePath = $file.SubString($remoteDirectory.Length)
+        $localPath = Join-Path $localDirectory $relativePath
 
         Write-Verbose "Copying $fileToCopy to $localPath"
         Copy-ItemFromRemoteMachine -localPath $localPath -remotePath $file -Session $session @commonParameterSwitches
