@@ -37,10 +37,21 @@ end
 # Git is installed to Program Files (x86) on 64-bit machines and
 # 'Program Files' on 32-bit machines
 PROGRAM_FILES = ENV['ProgramFiles(x86)'] || ENV['ProgramFiles']
-GIT_PATH = "#{ PROGRAM_FILES }/Git/Cmd"
+GIT_PATH = "#{ PROGRAM_FILES }\\Git\\Cmd"
+
+# COOK-3482 - windows_path resource doesn't change the current process
+# environment variables. Therefore, git won't actually be on the PATH
+# until the next chef-client run
+ruby_block 'Add Git Path' do
+  block do
+    ENV['PATH'] += ";#{GIT_PATH}"
+  end
+  action :nothing
+end
 
 windows_path GIT_PATH do
   action :add
+  notifies :create, 'ruby_block[Add Git Path]', :immediately
 end
 
 # Install .gitconfig with the following values:
@@ -55,21 +66,36 @@ end
 # Install Java JRE 8 (server JRE tar.gz package)
 powershell_script 'install_java' do
   code <<-POWERSHELL
-    $sevenzip = 'c:/Program Files (x86)/7-zip/7z.exe'
+    $sevenzip = 'c:/Program Files/7-zip/7z.exe'
 
     $configurationDir = 'c:/configuration'
     $javaTarGz = Join-Path $configurationDir 'server-jre-8u25-windows-x64.gz'
-    & $sevenzip x -y -o $configurationDir $javaTarGz
-
-    $javaDir = 'c:/java'
-    if (Test-Paths $javaDir)
+    if (-not (Test-Path $javaTarGz))
     {
-      Remove-Item -Path $javaDir -Force -Recurse -ErrorAction SilentlyContinue
+        throw "Could not locate $javaTarGz"
     }
 
-    $javaTar = Join-Path $configurationDir 'server-jre-8u25-windows-x64'
-    & $sevenzip x -y -o $javaDir $javaTar
+    $extractionDir = Join-Path $configurationDir "extract"
+    & $sevenzip x -y -o"$extractionDir" $javaTarGz
+
+    $javaDir = 'c:/java'
+    if (Test-Path $javaDir)
+    {
+        Remove-Item -Path $javaDir -Force -Recurse -ErrorAction SilentlyContinue
+    }
+
+    $javaTar = Join-Path $extractionDir 'server-jre-8u25-windows-x64'
+    if (-not (Test-Path $javaTar))
+    {
+        throw "Could not locate $javaTar"
+    }
+
+    & $sevenzip x -y -o"$javaDir" $javaTar
   POWERSHELL
+end
+
+directory 'c:/ci' do
+  action :create
 end
 
 # Copy Jenkins.war file
@@ -125,7 +151,7 @@ file 'c:/ci/jenkins.xml' do
     <env name="JENKINS_HOME" value="%BASE%"/>
 
     <!-- if you'd like to run Jenkins with a specific version of Java, specify a full path to java.exe. The following value assumes that you have java in your PATH. -->
-    <executable>C:\\java\\bin\\java.exe</executable>
+    <executable>C:/java/jdk1.8.0_25/bin/java.exe</executable>
     <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%\\jenkins.war" --httpPort=-1 --httpsPort=43 --httpsKeyStore=path/to/keystore --httpsKeyStorePassword=keystorePassword</arguments>
 
     <!-- interactive flag causes the empty black Java window to be displayed. I'm still debugging this. <interactive /> -->
@@ -147,7 +173,7 @@ powershell_script 'jenkins_as_service' do
     $securePassword = ConvertTo-SecureString $env:JenkinsPasword -AsPlainText -Force @commonParameterSwitches
     $credential = New-Object pscredential($env:JenkinsUser, $securePassword)
 
-    New-Service -Name 'jenkins' -BinaryPathName 'c:\\ci\\jenkins.exe' -Credential $credential -DisplayName 'Jenkins' -StartupType Automatic
+    New-Service -Name 'jenkins' -BinaryPathName 'c:/ci/jenkins.exe' -Credential $credential -DisplayName 'Jenkins' -StartupType Automatic
   POWERSHELL
 end
 

@@ -35,13 +35,13 @@ describe 'master'  do
 
   # Install 7-zip (c:\program files\7-zip --> 9.34)
   it 'installs 7-zip' do
-    expect(chef_run).to install_windows_package('7-Zip 9.35 (x64 edition)')
+    expect(chef_run).to install_windows_package('7-Zip 9.36 (x64 edition)')
   end
 
   # install git (c:\program files (x86)\git --> 1.9.5)
   it 'installs git' do
     expect(chef_run).to install_windows_package('Git version 1.9.5-preview20141217')
-    expect(chef_run).to add_windows_path(ENV['ProgramFiles(x86)'] + '/Git/Cmd')
+    expect(chef_run).to add_windows_path(ENV['ProgramFiles(x86)'] + '\\Git\\Cmd')
   end
 
   # install java (c:\java)
