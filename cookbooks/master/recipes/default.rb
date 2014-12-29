@@ -170,7 +170,7 @@ powershell_script 'jenkins_as_service' do
   environment ({ 'JenkinsUser' => jenkins_master_username,  'JenkinsPassword' => jenkins_master_password })
   # rubocop:enable Lint/ParenthesesAsGroupedExpression
   code <<-POWERSHELL
-    $securePassword = ConvertTo-SecureString $env:JenkinsPasword -AsPlainText -Force @commonParameterSwitches
+    $securePassword = ConvertTo-SecureString $env:JenkinsPassword -AsPlainText -Force @commonParameterSwitches
     $credential = New-Object pscredential($env:JenkinsUser, $securePassword)
 
     New-Service -Name 'jenkins' -BinaryPathName 'c:/ci/jenkins.exe' -Credential $credential -DisplayName 'Jenkins' -StartupType Automatic
