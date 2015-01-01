@@ -241,20 +241,29 @@ file 'c:/ci/jenkins.xml' do
   action :create
 end
 
-# grant run-as-service permissions?
-
 # Install jenkins.exe as service
 powershell_script 'jenkins_as_service' do
-  # rubocop:disable Lint/ParenthesesAsGroupedExpression
-  environment ({ 'JenkinsUser' => jenkins_master_username,  'JenkinsPassword' => jenkins_master_password })
-  # rubocop:enable Lint/ParenthesesAsGroupedExpression
+  environment(
+    'JenkinsUser' => jenkins_master_username,
+    'JenkinsPassword' => jenkins_master_password
+  )
   code <<-POWERSHELL
-    $securePassword = ConvertTo-SecureString $env:JenkinsPassword -AsPlainText -Force @commonParameterSwitches
-    $credential = New-Object pscredential($env:JenkinsUser, $securePassword)
+    $ErrorActionPreference = 'Stop'
+
+    Write-Host ("JenkinsUser: " + $env:JenkinsUser)
+    Write-Host ("JenkinsPassword: " + $env:JenkinsPassword)
+
+    $securePassword = ConvertTo-SecureString $env:JenkinsPassword -AsPlainText -Force
+
+    # Note the .\\ is to get the local machine account as per here:
+    # http://stackoverflow.com/questions/313622/powershell-script-to-change-service-account#comment14535084_315616
+    $credential = New-Object pscredential((".\\" + $env:JenkinsUser), $securePassword)
 
     New-Service -Name 'jenkins' -BinaryPathName 'c:/ci/jenkins.exe' -Credential $credential -DisplayName 'Jenkins' -StartupType Automatic
   POWERSHELL
 end
 
-# Secure Jenkins
-# - AD?
+env 'JENKINS_HOME' do
+  value ci_directory
+  action :create
+end
