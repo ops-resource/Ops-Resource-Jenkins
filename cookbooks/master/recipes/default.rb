@@ -19,6 +19,80 @@ user jenkins_master_username do
   action :create
 end
 
+# Grant the user the LogOnAsService permission. Following this anwer on SO: http://stackoverflow.com/a/21235462/539846
+# With some additional bug fixes to get the correct line from the export file and to put the correct text in the import file
+powershell_script 'user_grant_service_logon_rights' do
+  environment(
+    'JenkinsUser' => jenkins_master_username,
+    'JenkinsPassword' => jenkins_master_password
+  )
+  code <<-POWERSHELL
+    $ErrorActionPreference = 'Stop'
+
+    $userName = $env:JenkinsUser
+    $password = $env:JenkinsPassword
+
+    $tempPath = "c:/logs"
+    $import = Join-Path -Path $tempPath -ChildPath "import.inf"
+    if(Test-Path $import)
+    {
+        Remove-Item -Path $import -Force
+    }
+
+    $export = Join-Path -Path $tempPath -ChildPath "export.inf"
+    if(Test-Path $export)
+    {
+        Remove-Item -Path $export -Force
+    }
+
+    $secedt = Join-Path -Path $tempPath -ChildPath "secedt.sdb"
+    if(Test-Path $secedt)
+    {
+        Remove-Item -Path $secedt -Force
+    }
+
+    Write-Host ("Granting SeServiceLogonRight to user account: {0} on host: {1}." -f $userName, $computerName)
+    $sid = ((New-Object System.Security.Principal.NTAccount($userName)).Translate([System.Security.Principal.SecurityIdentifier])).Value
+
+    secedit /export /cfg $export
+    $line = (Select-String $export -Pattern "SeServiceLogonRight").Line
+    $sids = $line.Substring($line.IndexOf('=') + 1).Trim()
+
+    $lines = @(
+            "[Unicode]",
+            "Unicode=yes",
+            "[System Access]",
+            "[Event Audit]",
+            "[Registry Values]",
+            "[Version]",
+            "signature=`"`$CHICAGO$`"",
+            "Revision=1",
+            "[Profile Description]",
+            "Description=GrantLogOnAsAService security template",
+            "[Privilege Rights]",
+            "SeServiceLogonRight = $sids,*$sid"
+        )
+    foreach ($line in $lines)
+    {
+        Add-Content $import $line
+    }
+
+    secedit /import /db $secedt /cfg $import
+    secedit /configure /db $secedt
+    gpupdate /force
+  POWERSHELL
+end
+
+users_directory = 'c:/Users'
+directory users_directory do
+  action :create
+end
+
+jenkins_master_user_directory = users_directory + '/' + jenkins_master_username
+directory jenkins_master_user_directory do
+  action :create
+end
+
 # Install 7-zip
 # options "INSTALLDIR=\"#{ENV['ProgramFiles']/7-zip}\""
 windows_package node['7-zip']['package_name'] do
