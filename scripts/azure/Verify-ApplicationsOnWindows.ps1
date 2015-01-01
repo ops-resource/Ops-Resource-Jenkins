@@ -87,6 +87,9 @@ $env:SSL_CERT_FILE = $rubyCertFile
 
 Write-Output ("Environment variable SSL_CERT_FILE set to: " + $env:SSL_CERT_FILE)
 
+Write-Output "Installing rest_client gem ..."
+& gem install rest_client --version 1.7.2 --no-document --conservative --minimal-deps --verbose
+
 Write-Output "Installing serverspec gem ..."
 & gem install serverspec --version 2.7.0 --no-document --conservative --minimal-deps --verbose
 
