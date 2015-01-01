@@ -1,10 +1,24 @@
-# verify that the correct Java version is installed. See: https://www.java.net/node/661905 for keys
-describe windows_registery_key('HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432\JavaSoft\Java Runtime Environment') do
-  it { should have_property('Java8FamilyVersion', :type_string) }
+require File.join(File.dirname(__FILE__), '..', 'spec_helper')
+
+# verify that the correct Java version is installed.
+describe file('c:/java') do
+  it { should be_directory }
 end
 
-describe windows_registery_key('HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432\JavaSoft\Java Runtime Environment Java8FamilyVersion') do
-  it { should have_value('1.8.0_11') }
+describe file('C:/java/jdk1.8.0_25') do
+  it { should be_directory }
 end
 
-# Verify that JAVA is NOT in the PATH
+describe file('C:/java/jdk1.8.0_25/bin') do
+  it { should be_directory }
+end
+
+describe file('C:/java/jdk1.8.0_25/bin/java.exe') do
+  it { should be_file }
+  it { should be_version('8.0.25.18') }
+end
+
+describe command('powershell.exe -NoLogo -NonInteractive -NoProfile -Command "& c:/java/jdk1.8.0_25/bin/java.exe -version"') do
+  its(:stderr) { should match '' }
+  its(:stdout) { should include '1.8.0_25' }
+end
