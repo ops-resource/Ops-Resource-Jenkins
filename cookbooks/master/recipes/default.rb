@@ -140,6 +140,8 @@ end
 # Install Java JRE 8 (server JRE tar.gz package)
 powershell_script 'install_java' do
   code <<-POWERSHELL
+    $ErrorActionPreference = 'Stop'
+
     $sevenzip = 'c:/Program Files/7-zip/7z.exe'
 
     $configurationDir = 'c:/configuration'
@@ -168,7 +170,8 @@ powershell_script 'install_java' do
   POWERSHELL
 end
 
-directory 'c:/ci' do
+ci_directory = 'c:/ci'
+directory ci_directory do
   action :create
 end
 
@@ -201,6 +204,8 @@ end
 # create java SSL cert file like here: http://stackoverflow.com/a/9610431/539846
 
 # Create jenkins.xml
+# run as https:
+# <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/jenkins.war" --httpPort=-1 --httpsPort=43 --httpsKeyStore=path/to/keystore --httpsKeyStorePassword=keystorePassword</arguments>
 file 'c:/ci/jenkins.xml' do
   content <<-XML
 <?xml version="1.0"?>
@@ -226,7 +231,7 @@ file 'c:/ci/jenkins.xml' do
 
     <!-- if you'd like to run Jenkins with a specific version of Java, specify a full path to java.exe. The following value assumes that you have java in your PATH. -->
     <executable>C:/java/jdk1.8.0_25/bin/java.exe</executable>
-    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%\\jenkins.war" --httpPort=-1 --httpsPort=43 --httpsKeyStore=path/to/keystore --httpsKeyStorePassword=keystorePassword</arguments>
+    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/jenkins.war" --httpPort=8080</arguments>
 
     <!-- interactive flag causes the empty black Java window to be displayed. I'm still debugging this. <interactive /> -->
     <logmode>rotate</logmode>
