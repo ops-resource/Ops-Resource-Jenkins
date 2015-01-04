@@ -168,7 +168,7 @@ try
         $chefPath = "$userProfile\.chef\local-mode-cache\cache"
         if (Test-Path $chefPath)
         {
-            Get-ChildItem -Path $chefPath -Recurse -Force | Copy-Item -Destination $logDirectory
+            Get-ChildItem -Path $chefPath -Include *.pid,*.out | Copy-Item -Destination $logDirectory
         }
 
         throw "Chef-client failed. Exit code: $LastExitCode"
