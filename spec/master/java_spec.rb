@@ -17,8 +17,3 @@ describe file('C:/java/jdk1.8.0_25/bin/java.exe') do
   it { should be_file }
   it { should be_version('8.0.25.18') }
 end
-
-describe command('powershell.exe -NoLogo -NonInteractive -NoProfile -Command "& c:/java/jdk1.8.0_25/bin/java.exe -version"') do
-  its(:stderr) { should match '' }
-  its(:stdout) { should include '1.8.0_25' }
-end
