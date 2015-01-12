@@ -83,16 +83,6 @@ powershell_script 'user_grant_service_logon_rights' do
   POWERSHELL
 end
 
-users_directory = 'c:/Users'
-directory users_directory do
-  action :create
-end
-
-jenkins_master_user_directory = users_directory + '/' + jenkins_master_username
-directory jenkins_master_user_directory do
-  action :create
-end
-
 # Install 7-zip
 # options "INSTALLDIR=\"#{ENV['ProgramFiles']/7-zip}\""
 windows_package node['7-zip']['package_name'] do
