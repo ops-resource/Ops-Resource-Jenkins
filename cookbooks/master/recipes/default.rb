@@ -247,8 +247,8 @@ file 'c:/ci/jenkins.xml' do
     <env name="JENKINS_HOME" value="%BASE%"/>
 
     <!-- if you'd like to run Jenkins with a specific version of Java, specify a full path to java.exe. The following value assumes that you have java in your PATH. -->
-    <executable>C:/java/jdk1.8.0_25/bin/java.exe</executable>
-    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/jenkins.war" --httpPort=8080</arguments>
+    <executable>C:\\java\\jdk1.8.0_25\\bin\\java</executable>
+    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%\\jenkins.war" --httpPort=8080</arguments>
 
     <!-- interactive flag causes the empty black Java window to be displayed. I'm still debugging this. <interactive /> -->
     <logmode>rotate</logmode>
