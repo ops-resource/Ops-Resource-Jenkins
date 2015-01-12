@@ -44,6 +44,39 @@ describe 'master'  do
     expect(chef_run).to add_windows_path(ENV['ProgramFiles(x86)'] + '\\Git\\Cmd')
   end
 
+  # update the system git config
+  git_config_content = <<-INI
+[user]
+    name = jenkins.master
+    email = jenkins.master@cloud.jenkins.com
+[credential]
+    helper = wincred
+[core]
+    symlinks = false
+    autocrlf = false
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    interactive = true
+[pack]
+    packSizeLimit = 2g
+[help]
+    format = html
+[http]
+    sslCAinfo = /bin/curl-ca-bundle.crt
+[sendemail]
+    smtpserver = /bin/msmtp.exe
+[diff "astextplain"]
+    textconv = astextplain
+[rebase]
+    autosquash = true
+  INI
+
+  it 'updates gitconfig in the git/etc install directory' do
+    expect(chef_run).to create_file('C:\\Program Files (x86)\\Git\\etc\\gitconfig').with_content(git_config_content)
+  end
+
   # install java (c:\java)
   it 'installs java' do
     expect(chef_run).to run_powershell_script('install_java')

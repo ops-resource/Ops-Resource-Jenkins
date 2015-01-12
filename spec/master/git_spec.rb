@@ -24,3 +24,35 @@ describe command('powershell.exe -NoLogo -NonInteractive -NoProfile -Command "& 
 end
 
 # User configuration has been set-up
+git_config_content = <<-INI
+[user]
+    name = jenkins.master
+    email = jenkins.master@cloud.jenkins.com
+[credential]
+    helper = wincred
+[core]
+    symlinks = false
+    autocrlf = false
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    interactive = true
+[pack]
+    packSizeLimit = 2g
+[help]
+    format = html
+[http]
+    sslCAinfo = /bin/curl-ca-bundle.crt
+[sendemail]
+    smtpserver = /bin/msmtp.exe
+[diff "astextplain"]
+    textconv = astextplain
+[rebase]
+    autosquash = true
+  INI
+
+describe file('c:/program files (x86)/Git/etc/gitconfig') do
+  it { should be_file }
+  its(:content) { should match git_config_content }
+end

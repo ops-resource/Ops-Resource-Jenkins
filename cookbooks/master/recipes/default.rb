@@ -118,14 +118,41 @@ windows_path GIT_PATH do
   notifies :create, 'ruby_block[Add Git Path]', :immediately
 end
 
-# Install .gitconfig with the following values:
-# [user]
-#     name = username
-#     email = username@server.domain
-# [core]
-#     autocrlf = false
-# [credential]
-#     helper = !\"C:/Program Files (x86)/Git/libexec/git-core/git-credential-wincred.exe\"
+# Set up the git default configuration. Because we assume the machine is only
+# used for one purpose we can set the global configuration instead of the per user
+# one (which is much harder to create given that Windows doesn't allow us to create
+# the c:\Users\jenkins_master directory by ourselves).
+GIT_CONFIG_PATH = "#{ PROGRAM_FILES }\\Git\\etc\\gitconfig"
+file GIT_CONFIG_PATH do
+  content <<-INI
+[user]
+    name = jenkins.master
+    email = jenkins.master@cloud.jenkins.com
+[credential]
+    helper = wincred
+[core]
+    symlinks = false
+    autocrlf = false
+[color]
+    diff = auto
+    status = auto
+    branch = auto
+    interactive = true
+[pack]
+    packSizeLimit = 2g
+[help]
+    format = html
+[http]
+    sslCAinfo = /bin/curl-ca-bundle.crt
+[sendemail]
+    smtpserver = /bin/msmtp.exe
+[diff "astextplain"]
+    textconv = astextplain
+[rebase]
+    autosquash = true
+  INI
+  action :create
+end
 
 # Install Java JRE 8 (server JRE tar.gz package)
 powershell_script 'install_java' do
