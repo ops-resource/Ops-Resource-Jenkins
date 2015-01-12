@@ -1,16 +1,16 @@
 <#
     .SYNOPSIS
- 
+
     Verifies that a given image can indeed be used to create a Windows machine that serves as a Jenkins master.
- 
- 
+
+
     .DESCRIPTION
- 
+
     The Verify-AzureWindowsImage script verifies that a given image can indeed be used to create a Windows machine that serves as a Jenkins master.
- 
- 
+
+
     .PARAMETER configFile
- 
+
     The full path to the configuration file that contains all the information about the setup of the jenkins master VM. The XML file is expected to look like:
 
     <?xml version="1.0" encoding="utf-8"?>
@@ -31,15 +31,15 @@
             <entrypoint name="${InstallerMainScriptName}" />
         </desiredstate>
     </configuration>
- 
- 
+
+
     .PARAMETER azureScriptDirectory
- 
+
     The full path to the directory that contains the Azure helper scripts. Defaults to the directory containing the current script.
- 
- 
+
+
     .EXAMPLE
- 
+
     Verify-AzureWindowsImage -configFile 'c:\temp\azurejenkinsmaster.xml' -azureScriptDirectory 'c:\temp\source'
 #>
 [CmdletBinding(SupportsShouldProcess = $True)]
@@ -122,7 +122,7 @@ $remoteLogDirectory = "c:\logs"
 Set-AzureSubscription -SubscriptionName $subscriptionName -CurrentStorageAccount $storageAccount @commonParameterSwitches
 
 
-# The name of the VM is technically irrevant because we're only going to create it to check that the image is correct. 
+# The name of the VM is technically irrevant because we're only going to create it to check that the image is correct.
 # So make sure it's unique but don't bother with an actual name
 $now = [System.DateTimeOffset]::Now
 $vmName = ("tajm-" + $now.DayOfYear.ToString("000") + "-" + $now.Hour.ToString("00") + $now.Minute.ToString("00") + $now.Second.ToString("00"))
@@ -147,7 +147,7 @@ try
         -adminPassword $adminPassword
 
     $remoteDirectory = 'c:\verification'
-    Copy-FilesToRemoteMachine -session $session -localDirectory $testDirectory -remoteDirectory $remoteDirectory 
+    Copy-FilesToRemoteMachine -session $session -localDirectory $testDirectory -remoteDirectory $remoteDirectory
 
     # Verify that everything is there
     Invoke-Command `
@@ -159,7 +159,8 @@ try
                 [string] $testDirectory,
                 [string] $logDirectory
             )
-        
+
+            Start-Transcript -Path (Join-Path $logDirectory 'verify-azurewindowsimage.log')
             & $verificationScript -testDirectory $testDirectory -logDirectory $logDirectory
         } `
          @commonParameterSwitches

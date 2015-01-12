@@ -1,16 +1,16 @@
 <#
     .SYNOPSIS
- 
+
     Creates a new Azure VM image for a Windows machine that can serve as a Jenkins master.
- 
- 
+
+
     .DESCRIPTION
- 
+
     The New-AzureWindowsImage script creates a new Azure VM image for a Windows machine that can serve as a Jenkins master.
- 
- 
+
+
     .PARAMETER configFile
- 
+
     The full path to the configuration file that contains all the information about the setup of the jenkins master VM. The XML file is expected to look like:
 
     <?xml version="1.0" encoding="utf-8"?>
@@ -31,15 +31,15 @@
             <entrypoint name="${InstallerMainScriptName}" />
         </desiredstate>
     </configuration>
- 
- 
+
+
     .PARAMETER azureScriptDirectory
- 
+
     The full path to the directory that contains the Azure helper scripts. Defaults to the directory containing the current script.
- 
- 
+
+
     .EXAMPLE
- 
+
     New-AzureWindowsImage -configFile 'c:\temp\azurejenkinsmaster.xml' -azureScriptDirectory 'c:\temp\source'
 #>
 [CmdletBinding(SupportsShouldProcess = $True)]
@@ -130,7 +130,7 @@ $remoteLogDirectory = "c:\logs"
 # Set the storage account for the selected subscription
 Set-AzureSubscription -SubscriptionName $subscriptionName -CurrentStorageAccount $storageAccount @commonParameterSwitches
 
-# The name of the VM is technically irrevant because we're only after the disk in the end. So make sure it's unique but don't bother 
+# The name of the VM is technically irrevant because we're only after the disk in the end. So make sure it's unique but don't bother
 # with an actual name
 $now = [System.DateTimeOffset]::Now
 $vmName = ("ajm-" + $now.DayOfYear.ToString("000") + "-" + $now.Hour.ToString("00") + $now.Minute.ToString("00") + $now.Second.ToString("00"))
@@ -158,16 +158,16 @@ try
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Get-PSSessionForAzureVM complete - VM state: " + $vm.Status)
-    
+
     # Create the installer directory on the virtual machine
-    Copy-FilesToRemoteMachine -session $session -localDirectory $installationDirectory -remoteDirectory $remoteConfigurationDirectory 
+    Copy-FilesToRemoteMachine -session $session -localDirectory $installationDirectory -remoteDirectory $remoteConfigurationDirectory
 
     $vm = Get-AzureVM -ServiceName $resourceGroupName -Name $vmName
     Write-Verbose ("Copy-FilesToRemoteMachine complete - VM state: " + $vm.Status)
 
     # Execute the remote installation scripts
     $hasError = $false
-    try 
+    try
     {
         Invoke-Command `
             -Session $session `
@@ -178,7 +178,8 @@ try
                     [string] $configurationDirectory,
                     [string] $logDirectory
                 )
-            
+
+                Start-Transcript -Path (Join-Path $logDirectory 'new-azurewindowsimage.log')
                 & $installationScript -configurationDirectory $configurationDirectory -logDirectory $logDirectory -cookbookName 'master'
             } `
              @commonParameterSwitches
@@ -192,7 +193,7 @@ try
     {
         Write-Verbose "Copying log files from VM ..."
         Copy-FilesFromRemoteMachine -session $session -remoteDirectory $remoteLogDirectory -localDirectory $logDirectory
-        
+
         Write-Verbose "Copied log files from VM"
 
         Remove-FilesFromRemoteMachine -session $session -remoteDirectory $remoteConfigurationDirectory
