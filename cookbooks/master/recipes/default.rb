@@ -9,30 +9,33 @@
 
 include_recipe 'windows'
 
+configuration_directory = 'c:\\configuration'
+log_directory = 'c:\\logs'
+
+ci_directory = 'c:\\ci'
+jenkins_java_file_name = 'jenkins.war'
+service_name = 'jenkins'
+
 # Create user
 # - limited user (from AD?)
 # - Reduce access to files. User should only have write access to Jenkins dir and workspaces
-jenkins_master_username = 'jenkins_master'
-jenkins_master_password = SecureRandom.uuid
-user jenkins_master_username do
-  password jenkins_master_password
+jenkins_username = 'jenkins_master'
+jenkins_password = SecureRandom.uuid
+user jenkins_username do
+  password jenkins_password
   action :create
 end
 
 # Grant the user the LogOnAsService permission. Following this anwer on SO: http://stackoverflow.com/a/21235462/539846
 # With some additional bug fixes to get the correct line from the export file and to put the correct text in the import file
 powershell_script 'user_grant_service_logon_rights' do
-  environment(
-    'JenkinsUser' => jenkins_master_username,
-    'JenkinsPassword' => jenkins_master_password
-  )
   code <<-POWERSHELL
     $ErrorActionPreference = 'Stop'
 
-    $userName = $env:JenkinsUser
-    $password = $env:JenkinsPassword
+    $userName = "#{jenkins_username}"
+    $password = "#{jenkins_password}"
 
-    $tempPath = "c:/logs"
+    $tempPath = "#{log_directory}"
     $import = Join-Path -Path $tempPath -ChildPath "import.inf"
     if(Test-Path $import)
     {
@@ -155,13 +158,14 @@ file GIT_CONFIG_PATH do
 end
 
 # Install Java JRE 8 (server JRE tar.gz package)
+java_install_directory = 'c:\\java'
 powershell_script 'install_java' do
   code <<-POWERSHELL
     $ErrorActionPreference = 'Stop'
 
     $sevenzip = 'c:/Program Files/7-zip/7z.exe'
 
-    $configurationDir = 'c:/configuration'
+    $configurationDir = "#{configuration_directory}"
     $javaTarGz = Join-Path $configurationDir 'server-jre-8u25-windows-x64.gz'
     if (-not (Test-Path $javaTarGz))
     {
@@ -171,7 +175,7 @@ powershell_script 'install_java' do
     $extractionDir = Join-Path $configurationDir "extract"
     & $sevenzip x -y -o"$extractionDir" $javaTarGz
 
-    $javaDir = 'c:/java'
+    $javaDir = "#{java_install_directory}"
     if (Test-Path $javaDir)
     {
         Remove-Item -Path $javaDir -Force -Recurse -ErrorAction SilentlyContinue
@@ -187,23 +191,22 @@ powershell_script 'install_java' do
   POWERSHELL
 end
 
-ci_directory = 'c:/ci'
 directory ci_directory do
   action :create
 end
 
 # Copy Jenkins.war file
-remote_file 'c:/ci/jenkins.war' do
+remote_file '#{ci_directory}\\#{jenkins_java_file_name}' do
   source 'http://mirrors.jenkins-ci.org/war/1.595/jenkins.war'
 end
 
 # Copy Java service runner & rename to jenkins.exe
-remote_file 'c:/ci/jenkins.exe' do
+remote_file '#{ci_directory}\\#{service_name}.exe' do
   source 'http://repo.jenkins-ci.org/releases/com/sun/winsw/winsw/1.16/winsw-1.16-bin.exe'
 end
 
 # Create jenkins.exe.config
-file 'c:/ci/jenkins.exe.config' do
+file '#{ci_directory}\\#{service_name}.exe.config' do
   content <<-XML
 <configuration>
     <runtime>
@@ -223,7 +226,7 @@ end
 # Create jenkins.xml
 # run as https:
 # <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/jenkins.war" --httpPort=-1 --httpsPort=43 --httpsKeyStore=path/to/keystore --httpsKeyStorePassword=keystorePassword</arguments>
-file 'c:/ci/jenkins.xml' do
+file '#{ci_directory}\\#{service_name}.xml' do
   content <<-XML
 <?xml version="1.0"?>
 <!--
@@ -236,19 +239,15 @@ file 'c:/ci/jenkins.xml' do
     OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
 
-<!--
-    Windows service definition for Jenkins. To uninstall, run "jenkins.exe stop" to stop the service, then "jenkins.exe uninstall" to uninstall the
-    service. Both commands don't produce any output if the execution is successful.
--->
 <service>
-    <id>jenkins</id>
-    <name>Jenkins</name>
+    <id>#{service_name}</id>
+    <name>#{service_name}</name>
     <description>This service runs the Jenkins continuous integration system.</description>
     <env name="JENKINS_HOME" value="%BASE%"/>
 
     <!-- if you'd like to run Jenkins with a specific version of Java, specify a full path to java.exe. The following value assumes that you have java in your PATH. -->
-    <executable>C:\\java\\jdk1.8.0_25\\bin\\java</executable>
-    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%\\jenkins.war" --httpPort=8080</arguments>
+    <executable>#{java_install_directory}\\jdk1.8.0_25\\bin\\java</executable>
+    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%\\#{jenkins_java_file_name}" --httpPort=8080</arguments>
 
     <!-- interactive flag causes the empty black Java window to be displayed. I'm still debugging this. <interactive /> -->
     <logmode>rotate</logmode>
@@ -267,20 +266,31 @@ powershell_script 'jenkins_as_service' do
   code <<-POWERSHELL
     $ErrorActionPreference = 'Stop'
 
-    Write-Host ("JenkinsUser: " + $env:JenkinsUser)
-    Write-Host ("JenkinsPassword: " + $env:JenkinsPassword)
+    Write-Host "JenkinsUser: #{jenkins_username}"
+    Write-Host "JenkinsPassword: #{jenkins_password}"
 
-    $securePassword = ConvertTo-SecureString $env:JenkinsPassword -AsPlainText -Force
+    $securePassword = ConvertTo-SecureString "#{jenkins_password}" -AsPlainText -Force
 
     # Note the .\\ is to get the local machine account as per here:
     # http://stackoverflow.com/questions/313622/powershell-script-to-change-service-account#comment14535084_315616
-    $credential = New-Object pscredential((".\\" + $env:JenkinsUser), $securePassword)
+    $credential = New-Object pscredential((".\\" + "#{jenkins_username}"), $securePassword)
 
-    New-Service -Name 'jenkins' -BinaryPathName 'c:/ci/jenkins.exe' -Credential $credential -DisplayName 'Jenkins' -StartupType Automatic
+    New-Service -Name '#{service_name}' -BinaryPathName '#{ci_directory}\\#{service_name}.exe' -Credential $credential -DisplayName '#{service_name}' -StartupType Automatic
   POWERSHELL
 end
 
 env 'JENKINS_HOME' do
   value ci_directory
   action :create
+end
+
+# Create the event log source for the jenkins service. We'll create it now because the service runs as a normal user
+# and is as such not allowed to create eventlog sources
+registry_key "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\services\\eventlog\\Application\\#{service_name}" do
+  values [{
+    :name => "EventMessageFile",
+    :type => :string,
+    :data => "c:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\EventLogMessages.dll"
+    }]
+    action :create
 end

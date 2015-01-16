@@ -24,6 +24,10 @@ RSpec.configure do |config|
   config.version = '2012'
 end
 
+ci_directory = 'c:\\ci'
+jenkins_java_file_name = 'jenkins.war'
+service_name = 'jenkins'
+
 describe 'master'  do
   let(:chef_run) { ChefSpec::SoloRunner.converge(described_recipe) }
 
@@ -84,12 +88,12 @@ describe 'master'  do
 
   # install jenkins.jar
   it 'creates jenkins.war in the ci directory' do
-    expect(chef_run).to create_remote_file('c:/ci/jenkins.war').with_source('http://mirrors.jenkins-ci.org/war/1.595/jenkins.war')
+    expect(chef_run).to create_remote_file("#{ci_directory}\\#{jenkins_java_file_name}").with_source('http://mirrors.jenkins-ci.org/war/1.595/jenkins.war')
   end
 
   # install jenkins.exe
   it 'creates jenkins.exe in the ci directory' do
-    expect(chef_run).to create_remote_file('c:/ci/jenkins.exe').with_source('http://repo.jenkins-ci.org/releases/com/sun/winsw/winsw/1.16/winsw-1.16-bin.exe')
+    expect(chef_run).to create_remote_file("#{ci_directory}\\#{service_name}.exe").with_source('http://repo.jenkins-ci.org/releases/com/sun/winsw/winsw/1.16/winsw-1.16-bin.exe')
   end
 
   # install jenkins.config.exe
@@ -106,7 +110,7 @@ describe 'master'  do
   XML
 
   it 'creates jenkins.exe.config in the ci directory' do
-    expect(chef_run).to create_file('c:/ci/jenkins.exe.config').with_content(jenkins_exe_config_content)
+    expect(chef_run).to create_file('#{ci_directory}\\#{service_name}.exe.config').with_content(jenkins_exe_config_content)
   end
 
   # create java SSL cert file like here: http://stackoverflow.com/a/9610431/539846
@@ -124,19 +128,15 @@ describe 'master'  do
     OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
 
-<!--
-    Windows service definition for Jenkins. To uninstall, run "jenkins.exe stop" to stop the service, then "jenkins.exe uninstall" to uninstall the
-    service. Both commands don't produce any output if the execution is successful.
--->
 <service>
-    <id>jenkins</id>
-    <name>Jenkins</name>
+    <id>#{service_name}</id>
+    <name>#{service_name}</name>
     <description>This service runs the Jenkins continuous integration system.</description>
     <env name="JENKINS_HOME" value="%BASE%"/>
 
     <!-- if you'd like to run Jenkins with a specific version of Java, specify a full path to java.exe. The following value assumes that you have java in your PATH. -->
-    <executable>C:/java/jdk1.8.0_25/bin/java.exe</executable>
-    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/jenkins.war" --httpPort=8080</arguments>
+    <executable>C:\\java\\jdk1.8.0_25\\bin\\java.exe</executable>
+    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/#{jenkins_java_file_name}" --httpPort=8080</arguments>
 
     <!-- interactive flag causes the empty black Java window to be displayed. I'm still debugging this. <interactive /> -->
     <logmode>rotate</logmode>
@@ -144,7 +144,7 @@ describe 'master'  do
 </service>
   XML
   it 'creates jenkins.xml in the ci directory' do
-    expect(chef_run).to create_file('c:/ci/jenkins.xml').with_content(jenkins_xml_content)
+    expect(chef_run).to create_file('#{ci_directory}\\#{service_name}.xml').with_content(jenkins_xml_content)
   end
 
   # windows service jenkins
@@ -154,5 +154,9 @@ describe 'master'  do
   # install java (c:\java)
   it 'installs jenkins as service' do
     expect(chef_run).to run_powershell_script('jenkins_as_service')
+  end
+
+  it 'sets the JENKINS_HOME environment variable' do
+    expect(chef_run).to create_env('JENKINS_HOME').with(value: ci_directory)
   end
 end
