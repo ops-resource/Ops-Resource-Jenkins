@@ -160,7 +160,6 @@ try
                 [string] $logDirectory
             )
 
-            Start-Transcript -Path (Join-Path $logDirectory 'verify-azurewindowsimage.log')
             & $verificationScript -testDirectory $testDirectory -logDirectory $logDirectory
         } `
          @commonParameterSwitches

@@ -179,7 +179,6 @@ try
                     [string] $logDirectory
                 )
 
-                Start-Transcript -Path (Join-Path $logDirectory 'new-azurewindowsimage.log')
                 & $installationScript -configurationDirectory $configurationDirectory -logDirectory $logDirectory -cookbookName 'master'
             } `
              @commonParameterSwitches
