@@ -54,5 +54,5 @@ git_config_content = <<-INI
 
 describe file('c:/program files (x86)/Git/etc/gitconfig') do
   it { should be_file }
-  its(:content) { should match git_config_content }
+  its(:content) { should start_with(git_config_content) }
 end
