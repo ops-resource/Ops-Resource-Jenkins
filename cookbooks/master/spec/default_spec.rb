@@ -110,7 +110,7 @@ describe 'master'  do
   XML
 
   it 'creates jenkins.exe.config in the ci directory' do
-    expect(chef_run).to create_file('#{ci_directory}\\#{service_name}.exe.config').with_content(jenkins_exe_config_content)
+    expect(chef_run).to create_file("#{ci_directory}\\#{service_name}.exe.config").with_content(jenkins_exe_config_content)
   end
 
   # create java SSL cert file like here: http://stackoverflow.com/a/9610431/539846
@@ -135,8 +135,8 @@ describe 'master'  do
     <env name="JENKINS_HOME" value="%BASE%"/>
 
     <!-- if you'd like to run Jenkins with a specific version of Java, specify a full path to java.exe. The following value assumes that you have java in your PATH. -->
-    <executable>C:\\java\\jdk1.8.0_25\\bin\\java.exe</executable>
-    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/#{jenkins_java_file_name}" --httpPort=8080</arguments>
+    <executable>c:\\java\\jdk1.8.0_25\\bin\\java.exe</executable>
+    <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%\\#{jenkins_java_file_name}" --httpPort=8080</arguments>
 
     <!-- interactive flag causes the empty black Java window to be displayed. I'm still debugging this. <interactive /> -->
     <logmode>rotate</logmode>
@@ -144,7 +144,7 @@ describe 'master'  do
 </service>
   XML
   it 'creates jenkins.xml in the ci directory' do
-    expect(chef_run).to create_file('#{ci_directory}\\#{service_name}.xml').with_content(jenkins_xml_content)
+    expect(chef_run).to create_file("#{ci_directory}\\#{service_name}.xml").with_content(jenkins_xml_content)
   end
 
   # windows service jenkins

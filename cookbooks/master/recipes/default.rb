@@ -196,17 +196,17 @@ directory ci_directory do
 end
 
 # Copy Jenkins.war file
-remote_file '#{ci_directory}\\#{jenkins_java_file_name}' do
+remote_file "#{ci_directory}\\#{jenkins_java_file_name}" do
   source 'http://mirrors.jenkins-ci.org/war/1.595/jenkins.war'
 end
 
 # Copy Java service runner & rename to jenkins.exe
-remote_file '#{ci_directory}\\#{service_name}.exe' do
+remote_file "#{ci_directory}\\#{service_name}.exe" do
   source 'http://repo.jenkins-ci.org/releases/com/sun/winsw/winsw/1.16/winsw-1.16-bin.exe'
 end
 
 # Create jenkins.exe.config
-file '#{ci_directory}\\#{service_name}.exe.config' do
+file "#{ci_directory}\\#{service_name}.exe.config" do
   content <<-XML
 <configuration>
     <runtime>
@@ -226,7 +226,7 @@ end
 # Create jenkins.xml
 # run as https:
 # <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%/jenkins.war" --httpPort=-1 --httpsPort=43 --httpsKeyStore=path/to/keystore --httpsKeyStorePassword=keystorePassword</arguments>
-file '#{ci_directory}\\#{service_name}.xml' do
+file "#{ci_directory}\\#{service_name}.xml" do
   content <<-XML
 <?xml version="1.0"?>
 <!--
@@ -246,7 +246,7 @@ file '#{ci_directory}\\#{service_name}.xml' do
     <env name="JENKINS_HOME" value="%BASE%"/>
 
     <!-- if you'd like to run Jenkins with a specific version of Java, specify a full path to java.exe. The following value assumes that you have java in your PATH. -->
-    <executable>#{java_install_directory}\\jdk1.8.0_25\\bin\\java</executable>
+    <executable>#{java_install_directory}\\jdk1.8.0_25\\bin\\java.exe</executable>
     <arguments>-Xrs -Xmx512m -Dhudson.lifecycle=hudson.lifecycle.WindowsServiceLifecycle -jar "%BASE%\\#{jenkins_java_file_name}" --httpPort=8080</arguments>
 
     <!-- interactive flag causes the empty black Java window to be displayed. I'm still debugging this. <interactive /> -->
@@ -259,10 +259,6 @@ end
 
 # Install jenkins.exe as service
 powershell_script 'jenkins_as_service' do
-  environment(
-    'JenkinsUser' => jenkins_master_username,
-    'JenkinsPassword' => jenkins_master_password
-  )
   code <<-POWERSHELL
     $ErrorActionPreference = 'Stop'
 
@@ -288,9 +284,9 @@ end
 # and is as such not allowed to create eventlog sources
 registry_key "HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\services\\eventlog\\Application\\#{service_name}" do
   values [{
-    :name => "EventMessageFile",
-    :type => :string,
-    :data => "c:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\EventLogMessages.dll"
-    }]
-    action :create
+    name: 'EventMessageFile',
+    type: :string,
+    data: 'c:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\EventLogMessages.dll'
+  }]
+  action :create
 end
