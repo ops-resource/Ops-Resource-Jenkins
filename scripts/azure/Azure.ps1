@@ -1,130 +1,6 @@
 <#
     .SYNOPSIS
  
-    Copies a file to the given remote path on the machine that the session is connected to.
- 
- 
-    .DESCRIPTION
- 
-    The Copy-ItemToRemoteMachine function copies a local file to the given remote path on the machine that the session is connected to.
- 
- 
-    .PARAMETER localPath
- 
-    The full path of the file that should be copied.
- 
- 
-    .PARAMETER remotePath
- 
-    The full file path to which the local file should be copied
- 
- 
-    .PARAMETER session
- 
-    The PSSession that provides the connection between the local machine and the remote machine.
- 
- 
-    .EXAMPLE
- 
-    Copy-ItemToRemoteMachine -localPath 'c:\temp\myfile.txt' -remotePath 'c:\remote\myfile.txt' -session $session
-#>
-function Copy-ItemToRemoteMachine
-{
-    [CmdletBinding()]
-    param(
-        [string] $localPath,
-        [string] $remotePath,
-        [System.Management.Automation.Runspaces.PSSession] $session
-    )
-
-    # Use .NET file handling for speed
-    $content = [Io.File]::ReadAllBytes( $localPath )
-    $contentsizeMB = $content.Count / 1MB + 1MB
-
-    Write-Output "Copying $fileName from $localPath to $remotePath on $session.Name ..."
-
-    # Open local file
-    try
-    {
-        [IO.FileStream]$filestream = [IO.File]::OpenRead( $localPath )
-        Write-Output "Opened local file for reading"
-    }
-    catch
-    {
-        Write-Error "Could not open local file $localPath because:" $_.Exception.ToString()
-        Return $false
-    }
-
-    # Open remote file
-    try
-    {
-        Invoke-Command -Session $Session -ScriptBlock {
-            Param($remFile)
-            [IO.FileStream]$filestream = [IO.File]::OpenWrite( $remFile )
-        } -ArgumentList $remotePath
-        Write-Output "Opened remote file for writing"
-    }
-    catch
-    {
-        Write-Error "Could not open remote file $remotePath because:" $_.Exception.ToString()
-        Return $false
-    }
-
-    # Copy file in chunks
-    $chunksize = 1MB
-    [byte[]]$contentchunk = New-Object byte[] $chunksize
-    $bytesread = 0
-    while (($bytesread = $filestream.Read( $contentchunk, 0, $chunksize )) -ne 0)
-    {
-        try
-        {
-            $percent = $filestream.Position / $filestream.Length
-            Write-Output ("Copying {0}, {1:P2} complete, sending {2} bytes" -f $fileName, $percent, $bytesread)
-            Invoke-Command -Session $Session -ScriptBlock {
-                Param($data, $bytes)
-                $filestream.Write( $data, 0, $bytes )
-            } -ArgumentList $contentchunk,$bytesread
-        }
-        catch
-        {
-            Write-Error "Could not copy $fileName to $($Connection.Name) because:" $_.Exception.ToString()
-            return $false
-        }
-        finally
-        {
-        }
-    }
-
-    # Close remote file
-    try
-    {
-        Invoke-Command -Session $Session -ScriptBlock {
-            $filestream.Close()
-        }
-        Write-Output "Closed remote file, copy complete"
-    }
-    catch
-    {
-        Write-Error "Could not close remote file $remotePath because:" $_.Exception.ToString()
-        Return $false
-    }
-
-    # Close local file
-    try
-    {
-        $filestream.Close()
-        Write-Output "Closed local file, copy complete"
-    }
-    catch
-    {
-        Write-Error "Could not close local file $localPath because:" $_.Exception.ToString()
-        Return $false
-    }
-}
-
-<#
-    .SYNOPSIS
- 
     Creates a new Azure VM from a given base image in the given resource group.
  
  
@@ -314,81 +190,6 @@ function Get-PSSessionForAzureVM
 <#
     .SYNOPSIS
  
-    Copies a set of files to a remote directory on a given Azure VM.
- 
- 
-    .DESCRIPTION
- 
-    The Add-AzureFilesToVM function copies a set of files to a remote directory on a given Azure VM.
- 
- 
-    .PARAMETER session
- 
-    The PSSession that provides the connection between the local machine and the remote machine.
- 
- 
-    .PARAMETER remoteDirectory
- 
-    The full path to the remote directory into which the files should be copied. Defaults to 'c:\installers'
- 
- 
-    .PARAMETER filesToCopy
- 
-    The collection of local files that should be copied.
- 
- 
-    .EXAMPLE
- 
-    Add-AzureFilesToVM -session $session -remoteDirectory 'c:\temp' -filesToCopy (Get-ChildItem c:\temp -recurse)
-#>
-function Add-AzureFilesToVM
-{
-    param(
-        [System.Management.Automation.Runspaces.PSSession] $session,
-        [string] $remoteDirectory = "c:\installers",
-        [string[]] $filesToCopy
-    )
-
-    # Stop everything if there are errors
-    $ErrorActionPreference = 'Stop'
-
-    $commonParameterSwitches =
-        @{
-            Verbose = $PSBoundParameters.ContainsKey('Verbose');
-            Debug = $PSBoundParameters.ContainsKey('Debug');
-            ErrorAction = "Stop"
-        }
-
-    # Create the installer directory on the virtual machine
-    Invoke-Command `
-        -Session $session `
-        -ArgumentList @( $remoteDirectory ) `
-        -ScriptBlock {
-            param(
-                [string] $dir
-            )
-        
-            if (-not (Test-Path $dir))
-            {
-                New-Item -Path $dir -ItemType Directory
-            }
-        } `
-         @commonParameterSwitches
-
-    # Push binaries to the new VM
-    Write-Verbose "Copying files to virtual machine: $filesToCopy"
-    foreach($fileToCopy in $filesToCopy)
-    {
-        $remotePath = Join-Path $remoteDirectory (Split-Path -Leaf $fileToCopy)
-
-        Write-Verbose "Copying $fileToCopy to $remotePath"
-        Copy-ItemToRemoteMachine -localPath $fileToCopy -remotePath $remotePath -Session $session @commonParameterSwitches
-    }
-}
-
-<#
-    .SYNOPSIS
- 
     Syspreps an Azure VM and then creates an image from it.
  
  
@@ -452,7 +253,7 @@ function New-AzureSyspreppedVMImage
             ErrorAction = "Stop"
         }
 
-    $cmd = 'Write-Verbose "Executing $sysPrepScript on VM"; & c:\Windows\system32\sysprep\sysprep.exe /oobe /generalize /shutdown'
+    $cmd = 'Write-Output "Executing $sysPrepScript on VM"; & c:\Windows\system32\sysprep\sysprep.exe /oobe /generalize /shutdown'
     $tempDir = Join-Path $env:TEMP ([System.Guid]::NewGuid().ToString())
     $sysprepCmd = Join-Path $tempDir 'sysprep.ps1'
     
@@ -465,7 +266,7 @@ function New-AzureSyspreppedVMImage
         }
         
         Set-Content -Value $cmd -Path $sysprepCmd
-        Add-AzureFilesToVM -session $session -remoteDirectory $remoteDirectory -filesToCopy @( $sysprepCmd )
+        Copy-FilesToRemoteMachine -session $session -remoteDirectory $remoteDirectory -localDirectory $tempDir
     }
     finally
     {

@@ -1,0 +1,9 @@
+Metrics/LineLength:
+  Max: 100
+  Enabled: false
+
+AllCops:
+  Exclude:
+    - 'build/**/*'
+    - 'cookbooks/chef_handler/**/*'
+    - 'cookbooks/windows/**/*'
