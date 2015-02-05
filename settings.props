@@ -52,7 +52,7 @@
             * Copyrights
             * API documentation
         -->
-        <ProductName Condition=" '$(ProductName)' == '' ">Jenkins master</ProductName>
+        <ProductName Condition=" '$(ProductName)' == '' ">Jenkins cloud resources</ProductName>
 
         <!--
             The name of the product that can be used as part of a file path. This is used for:
@@ -60,14 +60,14 @@
             * SourceMonitor
             * Deployment directory naming
         -->
-        <ProductNameInFilePath Condition=" '$(ProductNameInFilePath)' == '' ">JenkinsMaster</ProductNameInFilePath>
+        <ProductNameInFilePath Condition=" '$(ProductNameInFilePath)' == '' ">JenkinsCloudResources</ProductNameInFilePath>
 
         <!--
             The description of the product. This is used for:
             * Installer information
         -->
         <ProductDescription>
-            The Jenkins master image.
+            The Jenkins cloud images.
         </ProductDescription>
 
         <!--
@@ -111,10 +111,10 @@
         <GitHubUserName Condition=" '$(GitHubUserName)' == '' ">pvandervelde</GitHubUserName>
 
         <!-- The repository that contains the source code for the current product -->
-        <GitHubRepositoryName Condition=" '$(GitHubRepositoryName)' == '' ">$(GitHubUserName)\cloud-jenkins</GitHubRepositoryName>
+        <GitHubRepositoryName Condition=" '$(GitHubRepositoryName)' == '' ">$(GitHubUserName)\cloud-jenkins-resources</GitHubRepositoryName>
 
         <!-- Repository information -->
-        <GitRemoteRepository Condition=" '$(GitRemoteRepository)' == '' ">https://%GitHubToken%:@github.com/$(GitHubUserName)/cloud-jenkins.git</GitRemoteRepository>
+        <GitRemoteRepository Condition=" '$(GitRemoteRepository)' == '' ">https://%GitHubToken%:@github.com/$(GitHubUserName)/cloud-jenkins-resources.git</GitRemoteRepository>
     </PropertyGroup>
 
 
