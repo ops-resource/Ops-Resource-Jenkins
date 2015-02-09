@@ -33,7 +33,6 @@ powershell_script 'user_grant_service_logon_rights' do
     $ErrorActionPreference = 'Stop'
 
     $userName = "#{jenkins_username}"
-    $password = "#{jenkins_password}"
 
     $tempPath = "#{log_directory}"
     $import = Join-Path -Path $tempPath -ChildPath "import.inf"

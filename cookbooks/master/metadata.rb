@@ -6,5 +6,4 @@ description 'Installs/Configures a Jenkins master on a Windows server'
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version '${VersionSemantic}'
 
-depends 'chef_handler'
 depends 'windows'

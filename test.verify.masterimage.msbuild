@@ -31,7 +31,7 @@
         <DirScriptsAzure Condition=" '$(DirScriptsAzure)' == '' ">$(DirScripts)\azure</DirScriptsAzure>
 
         <DirSpec Condition=" '$(DirSpec)' == '' ">$(DirWorkspace)\spec</DirSpec>
-        <DirSpecMaster Condition=" '$(DirSpecMaster)' == '' ">$(DirSpec)\jenkinsmaster</DirSpecMaster>
+        <DirSpecMaster Condition=" '$(DirSpecMaster)' == '' ">$(DirSpec)\master</DirSpecMaster>
 
         <!-- Azure configuration -->
         <AzureSubscriptionName Condition=" '$(AzureSubscriptionName)' == '' ">UNDEFINED</AzureSubscriptionName>
